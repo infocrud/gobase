@@ -34,22 +34,8 @@ export default function Navbar() {
         justifyContent: 'space-between',
       }}>
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #da5d04, #f97316)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 700,
-            fontSize: '14px',
-          }}>
-            G
-          </div>
-          <span style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>GoBase</span>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img src="/logo-full.png" alt="GoBase" style={{ height: '44px' }} />
         </Link>
 
         {/* Nav Links */}

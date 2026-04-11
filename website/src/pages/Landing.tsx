@@ -256,7 +256,7 @@ export default function LandingPage() {
       <footer className="py-12 px-6 border-t border-[var(--border)] bg-slate-50">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-[#da5d04] to-orange-400 flex items-center justify-center text-white text-xs font-bold">G</div>
+            <img src="/logo.png" alt="GoBase" className="w-6 h-6 rounded" />
             <span className="text-sm text-[var(--text-muted)]">© 2026 GoBase. Open source under MIT License.</span>
           </div>
           <div className="flex gap-6 text-sm text-[var(--text-muted)]">
