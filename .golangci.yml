@@ -1,0 +1,48 @@
+linters:
+  enable:
+    - errcheck       # Check for unchecked errors
+    - gosimple       # Simplify code
+    - govet          # Go vet
+    - ineffassign    # Detect wasteful assignments
+    - staticcheck    # Static analysis
+    - unused         # Detect unused code
+    - bodyclose      # Detect unclosed HTTP response bodies
+    - goconst        # Detect repeated strings that could be constants
+    - gosec          # Security analysis
+    - misspell       # Detect misspelled English words
+    - exportloopref  # Detect loop variable capture issues
+    - noctx          # Detect http.Request without context
+    - prealloc       # Suggest preallocating slices
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment  # Too noisy for this codebase
+  gosec:
+    excludes:
+      - G114  # net/http server with no timeout — we use Fiber
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    - path: internal/handler/
+      linters:
+        - noctx
+
+run:
+  timeout: 5m
+  skip-dirs:
+    - vendor
+    - node_modules
+    - dashboard
+    - website
+    - sdk

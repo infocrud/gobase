@@ -1,0 +1,74 @@
+# docker-compose.prod.yml — Production override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # ─── GoBase Gateway ─────────────────────────────
+  gateway:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/gateway"]
+    ports: ["8000:8000"]
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── GoBase Auth ────────────────────────────────
+  auth:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/auth"]
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── GoBase REST ────────────────────────────────
+  rest:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/rest"]
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── GoBase Realtime ────────────────────────────
+  realtime:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/realtime"]
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── GoBase Storage ─────────────────────────────
+  storage:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/storage"]
+    env_file: .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── GoBase Functions ───────────────────────────
+  functions:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/functions"]
+    env_file: .env
+    restart: unless-stopped
+
+  # ─── Migration Runner (one-shot) ───────────────────
+  migrate:
+    build: { context: ., dockerfile: Dockerfile }
+    entrypoint: ["/usr/local/bin/migrate"]
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["migrate"]
