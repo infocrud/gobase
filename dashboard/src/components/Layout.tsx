@@ -23,10 +23,10 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="w-64 border-r border-[hsl(217.2,32.6%,17.5%)] flex flex-col">
         <div className="p-5 border-b border-[hsl(217.2,32.6%,17.5%)]">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-            GoBase
-          </h1>
-          <p className="text-xs text-[hsl(215,20.2%,65.1%)] mt-0.5">Admin Dashboard</p>
+          <div className="bg-white rounded-lg px-3 py-1.5 inline-flex">
+            <img src="/gobase-logo.svg" alt="GoBase" style={{ height: '26px' }} />
+          </div>
+          <p className="text-xs text-[hsl(215,20.2%,65.1%)] mt-2">Admin Dashboard</p>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">

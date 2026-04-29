@@ -1,14 +1,13 @@
 <div align="center">
-  <!-- TODO: Replace with actual logo URL once you have one -->
-  <h1>⚡ GoBase ⚡</h1>
+  <img src="https://raw.githubusercontent.com/infocrud/gobase/main/assets/gobase-logo.svg" alt="GoBase" width="320" />
   <p><strong>The open-source Backend-as-a-Service built for speed with Go and MySQL.</strong></p>
 
   <!-- Badges -->
   <p>
-    <a href="https://github.com/sureshkumarselvaraj/gobase/stargazers"><img src="https://img.shields.io/github/stars/sureshkumarselvaraj/gobase?style=for-the-badge&color=yellow" alt="Stars Badge"/></a>
-    <a href="https://github.com/sureshkumarselvaraj/gobase/network/members"><img src="https://img.shields.io/github/forks/sureshkumarselvaraj/gobase?style=for-the-badge&color=orange" alt="Forks Badge"/></a>
-    <a href="https://github.com/sureshkumarselvaraj/gobase/issues"><img src="https://img.shields.io/github/issues/sureshkumarselvaraj/gobase?style=for-the-badge&color=blue" alt="Issues Badge"/></a>
-    <a href="https://github.com/sureshkumarselvaraj/gobase/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sureshkumarselvaraj/gobase?style=for-the-badge&color=green" alt="License Badge"/></a>
+    <a href="https://github.com/infocrud/gobase/stargazers"><img src="https://img.shields.io/github/stars/infocrud/gobase?style=for-the-badge&color=yellow" alt="Stars Badge"/></a>
+    <a href="https://github.com/infocrud/gobase/network/members"><img src="https://img.shields.io/github/forks/infocrud/gobase?style=for-the-badge&color=orange" alt="Forks Badge"/></a>
+    <a href="https://github.com/infocrud/gobase/issues"><img src="https://img.shields.io/github/issues/infocrud/gobase?style=for-the-badge&color=blue" alt="Issues Badge"/></a>
+    <a href="https://github.com/infocrud/gobase/blob/main/LICENSE"><img src="https://img.shields.io/github/license/infocrud/gobase?style=for-the-badge&color=green" alt="License Badge"/></a>
   </p>
 
   <p>
@@ -71,7 +70,7 @@ graph TD;
 
 ### 1. Clone & Configure
 ```bash
-git clone https://github.com/sureshkumarselvaraj/gobase.git
+git clone https://github.com/infocrud/gobase.git
 cd gobase
 cp .env.example .env
 ```

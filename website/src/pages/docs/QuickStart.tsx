@@ -14,7 +14,7 @@ export default function QuickStartPage() {
       </ul>
 
       <H2>1. Clone the repo</H2>
-      <Code>{`git clone https://github.com/gobase/gobase.git
+      <Code>{`git clone https://github.com/infocrud/gobase.git
 cd gobase
 cp .env.example .env`}</Code>
 

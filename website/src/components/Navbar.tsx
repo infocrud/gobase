@@ -35,7 +35,7 @@ export default function Navbar() {
       }}>
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="/logo-full.png" alt="GoBase" style={{ height: '44px' }} />
+          <img src="/gobase-logo.svg" alt="GoBase" style={{ height: '40px' }} />
         </Link>
 
         {/* Nav Links */}
@@ -66,7 +66,7 @@ export default function Navbar() {
         {/* CTA */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a
-            href="https://github.com/gobase"
+            href="https://github.com/infocrud/gobase"
             target="_blank"
             style={{ color: '#475569', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
           >

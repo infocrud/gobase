@@ -8,7 +8,7 @@ export default function DeployPage() {
 
       <H2>Docker Compose (Recommended)</H2>
       <Code>{`# Clone and configure
-git clone https://github.com/gobase/gobase.git && cd gobase
+git clone https://github.com/infocrud/gobase.git && cd gobase
 cp .env.example .env
 # Edit .env — change JWT_SECRET and passwords!
 

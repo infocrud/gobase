@@ -35,7 +35,7 @@ export default function LandingPage() {
               Get Started — it's free
             </Link>
             <a
-              href="https://github.com/gobase"
+              href="https://github.com/infocrud/gobase"
               className="px-8 py-3.5 rounded-xl border border-[var(--border)] hover:border-[#da5d04] text-[var(--text-secondary)] hover:text-[#da5d04] font-medium text-base transition-all duration-200 bg-white"
             >
               ★ Star on GitHub
@@ -246,7 +246,7 @@ export default function LandingPage() {
           </p>
           <div className="inline-flex items-center gap-3">
             <code className="px-5 py-3 rounded-lg bg-slate-100 border border-slate-200 text-sm text-slate-700 font-mono">
-              git clone https://github.com/gobase/gobase && make docker-up
+              git clone https://github.com/infocrud/gobase && make docker-up
             </code>
           </div>
         </div>
@@ -256,12 +256,12 @@ export default function LandingPage() {
       <footer className="py-12 px-6 border-t border-[var(--border)] bg-slate-50">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="GoBase" className="w-6 h-6 rounded" />
+            <img src="/gobase-logo.svg" alt="GoBase" style={{ height: '18px' }} />
             <span className="text-sm text-[var(--text-muted)]">© 2026 GoBase. Open source under MIT License.</span>
           </div>
           <div className="flex gap-6 text-sm text-[var(--text-muted)]">
             <Link to="/docs" className="hover:text-[#da5d04] transition-colors">Docs</Link>
-            <a href="https://github.com/gobase" className="hover:text-[#da5d04] transition-colors">GitHub</a>
+            <a href="https://github.com/infocrud/gobase" className="hover:text-[#da5d04] transition-colors">GitHub</a>
             <a href="#" className="hover:text-[#da5d04] transition-colors">Discord</a>
             <a href="#" className="hover:text-[#da5d04] transition-colors">Twitter</a>
           </div>
