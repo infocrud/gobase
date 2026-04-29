@@ -5,7 +5,7 @@
 | Tool | Version | Purpose |
 |------|---------|---------|
 | Go | 1.21+ | Build Go services |
-| Docker & Docker Compose | Latest | MySQL, Redis, MinIO |
+| Docker & Docker Compose | Latest | PostgreSQL, Redis, MinIO |
 | Node.js + npm | 18+ | SDK build, Dashboard |
 | Deno or Node.js | Latest | Edge functions runtime (optional) |
 
@@ -31,7 +31,7 @@ cp .env.example .env
 
 ```bash
 make docker-up
-# Starts: MySQL 8 (:3306), Redis 7 (:6379), MinIO (:9000/:9001)
+# Starts: PostgreSQL 15 (:5432), Redis 7 (:6379), MinIO (:9000/:9001)
 # Wait ~5s for health checks to pass
 ```
 
@@ -123,7 +123,7 @@ scp -r dashboard/dist/ user@server:/opt/gobase/dashboard/
 ```ini
 [Unit]
 Description=GoBase Gateway
-After=network.target mysql.service redis.service
+After=network.target postgres.service redis.service
 
 [Service]
 Type=simple
@@ -180,7 +180,7 @@ ENTRYPOINT ["gateway"]
     entrypoint: ["/usr/local/bin/gateway"]
     ports: ["8000:8000"]
     env_file: .env
-    depends_on: [mysql, redis]
+    depends_on: [postgres, redis]
 
   auth:
     build: { context: ., dockerfile: Dockerfile }
@@ -242,7 +242,7 @@ APP_ENV=production
 LOG_LEVEL=info
 JWT_SECRET=<generate: openssl rand -hex 32>
 DB_PASSWORD=<strong-unique-password>
-DB_HOST=<your-mysql-host>         # Not localhost
+DB_HOST=<your-postgres-host>         # Not localhost
 REDIS_HOST=<your-redis-host>      # Not localhost
 MINIO_ENDPOINT=<your-minio-host>  # Not localhost
 MINIO_ACCESS_KEY=<unique-key>
@@ -308,12 +308,12 @@ server {
 ## Service Dependency Order
 
 ```
-1. Docker infra  → MySQL, Redis, MinIO
+1. Docker infra  → PostgreSQL, Redis, MinIO
 2. make migrate  → Database tables
 3. Auth service  → Required by all JWT-protected services
-4. REST service  → Needs MySQL + policies table
+4. REST service  → Needs PostgreSQL + policies table
 5. Storage       → Needs MinIO
-6. Realtime      → Needs MySQL
+6. Realtime      → Needs PostgreSQL
 7. Functions     → Standalone (filesystem only)
 8. Gateway       → Needs Redis + all upstream services
 9. Dashboard     → Needs Gateway running

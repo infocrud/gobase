@@ -9,7 +9,7 @@ services:
     ports: ["8000:8000"]
     env_file: .env
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -21,7 +21,7 @@ services:
     entrypoint: ["/usr/local/bin/auth"]
     env_file: .env
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 
@@ -31,7 +31,7 @@ services:
     entrypoint: ["/usr/local/bin/rest"]
     env_file: .env
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 
@@ -41,7 +41,7 @@ services:
     entrypoint: ["/usr/local/bin/realtime"]
     env_file: .env
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 
@@ -68,7 +68,7 @@ services:
     entrypoint: ["/usr/local/bin/migrate"]
     env_file: .env
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: "no"
     profiles: ["migrate"]

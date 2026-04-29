@@ -58,26 +58,41 @@ export default function StoragePage() {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold text-white mb-6">Storage Browser</h2>
+      <div>
+        <h2 className="text-2xl font-bold text-white">Storage Browser</h2>
+        <p className="text-sm text-[hsl(215,20.2%,65.1%)] mt-1">Manage buckets and files (S3-compatible)</p>
+      </div>
+
+      {/* Help Card */}
+      <div className="mt-6 mb-6 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+        <p className="text-sm text-blue-300 font-medium">📦 Storage Features</p>
+        <p className="text-xs text-blue-200/70 mt-1">Upload files, create buckets, and generate presigned download URLs</p>
+      </div>
 
       {/* Bucket Management */}
       <div className="flex gap-3 mb-6">
         <div className="flex gap-2 flex-wrap flex-1">
-          {buckets.map(b => (
-            <button
-              key={b.name}
-              onClick={() => setSelectedBucket(b.name)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                selectedBucket === b.name
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[hsl(217.2,32.6%,17.5%)] text-[hsl(215,20.2%,65.1%)] hover:text-white'
-              }`}
-            >
-              ◫ {b.name}
-            </button>
-          ))}
+          {buckets.length === 0 ? (
+            <div className="w-full p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+              <p className="text-[hsl(215,20.2%,65.1%)] text-sm">📦 No buckets yet</p>
+              <p className="text-xs text-[hsl(215,20.2%,45%)] mt-1">Create your first bucket using the form below</p>
+            </div>
+          ) : (
+            buckets.map(b => (
+              <button
+                key={b.name}
+                onClick={() => setSelectedBucket(b.name)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                  selectedBucket === b.name
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[hsl(217.2,32.6%,17.5%)] text-[hsl(215,20.2%,65.1%)] hover:text-white'
+                }`}
+              >
+                ◫ {b.name}
+              </button>
+            ))
+          )}
         </div>
-        <div className="flex gap-2">
           <input
             value={newBucket}
             onChange={e => setNewBucket(e.target.value)}

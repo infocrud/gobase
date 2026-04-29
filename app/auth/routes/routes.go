@@ -13,6 +13,7 @@ type Handlers struct {
 	Verify *handlers.VerifyHandler
 	Reset  *handlers.ResetHandler
 	Admin  *handlers.AdminHandler
+	Audit  *handlers.AuditHandler
 }
 
 // Register sets up all auth routes on the given Fiber app.
@@ -43,4 +44,9 @@ func Register(app *fiber.App, h Handlers, jwtSecret string) {
 	admin.Get("/users/:id", h.Admin.GetUser)
 	admin.Patch("/users/:id", h.Admin.UpdateUser)
 	admin.Delete("/users/:id", h.Admin.DeleteUser)
+
+	// Audit logs (admin only)
+	if h.Audit != nil {
+		admin.Get("/audit", h.Audit.ListAuditLogs)
+	}
 }

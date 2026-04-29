@@ -3,10 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 const navLinks = [
   { path: '/', label: 'Home' },
   { path: '/docs', label: 'Docs' },
-  { path: '/docs/auth', label: 'Auth' },
-  { path: '/docs/database', label: 'Database' },
-  { path: '/docs/storage', label: 'Storage' },
-  { path: '/docs/realtime', label: 'Realtime' },
+  { path: '/pricing', label: 'Pricing' },
 ];
 
 export default function Navbar() {

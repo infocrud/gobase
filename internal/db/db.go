@@ -6,7 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/sureshkumarselvaraj/gobase/internal/config"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -38,7 +38,7 @@ func Connect(cfg config.DBConfig) (*gorm.DB, error) {
 	// Retry with exponential backoff: 1s, 2s, 4s, 8s, 16s
 	maxRetries := 5
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		db, err = gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{
+		db, err = gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
 			Logger:                 logger.Default.LogMode(gormLogLevel),
 			SkipDefaultTransaction: true,
 			PrepareStmt:            true,

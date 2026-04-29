@@ -6,15 +6,30 @@ import (
 	"github.com/sureshkumarselvaraj/gobase/internal/middleware"
 )
 
-func Register(app *fiber.App, cpHandler *handlers.ControlPlaneHandler, jwtSecret string) {
+func Register(app *fiber.App, h *handlers.ControlPlaneHandler, jwtSecret string) {
 	api := app.Group("/controlplane/v1")
 
-	// Protected routes
 	protected := api.Group("/", middleware.JWTProtect(jwtSecret))
-	
-	protected.Post("/organizations", cpHandler.CreateOrganization)
-	protected.Post("/projects", cpHandler.ProvisionProject)
 
-	// Webhooks (unprotected, verified via signatures)
-	api.Post("/webhooks/stripe", cpHandler.StripeWebhook)
+	// Organizations
+	protected.Post("/organizations", h.CreateOrganization)
+	protected.Get("/organizations", h.ListOrganizations)
+	protected.Get("/organizations/:orgID", h.GetOrganization)
+	protected.Patch("/organizations/:orgID", h.UpdateOrganization)
+	protected.Delete("/organizations/:orgID", h.DeleteOrganization)
+
+	// Projects
+	protected.Post("/projects", h.ProvisionProject)
+	protected.Get("/organizations/:orgID/projects", h.ListProjects)
+	protected.Get("/projects/:projectID", h.GetProject)
+	protected.Patch("/projects/:projectID", h.UpdateProject)
+	protected.Delete("/projects/:projectID", h.DeleteProject)
+
+	// API Keys (scoped to project)
+	protected.Post("/projects/:projectID/keys", h.CreateAPIKey)
+	protected.Get("/projects/:projectID/keys", h.ListAPIKeys)
+	protected.Delete("/projects/:projectID/keys/:keyID", h.DeleteAPIKey)
+
+	// Webhooks — verified via Stripe signature, not JWT
+	api.Post("/webhooks/stripe", h.StripeWebhook)
 }

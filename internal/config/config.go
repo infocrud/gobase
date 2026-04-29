@@ -63,9 +63,9 @@ type DBConfig struct {
 	LogVerbose      bool // When true, GORM logs all SQL queries (only in development)
 }
 
-// DSN returns the MySQL Data Source Name.
+// DSN returns the PostgreSQL Data Source Name.
 func (d DBConfig) DSN() string {
-	return d.User + ":" + d.Password + "@tcp(" + d.Host + ":" + d.Port + ")/" + d.Name + "?charset=utf8mb4&parseTime=True&loc=Local"
+	return "host=" + d.Host + " port=" + d.Port + " user=" + d.User + " password=" + d.Password + " dbname=" + d.Name + " sslmode=disable"
 }
 
 type RedisConfig struct {

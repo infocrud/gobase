@@ -44,7 +44,20 @@ export default function SQLRunnerPage() {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold text-white mb-6">SQL Runner</h2>
+      <div>
+        <h2 className="text-2xl font-bold text-white">SQL Runner</h2>
+        <p className="text-sm text-[hsl(215,20.2%,65.1%)] mt-1">Execute SELECT queries with RLS enforcement</p>
+      </div>
+
+      {/* Help Card */}
+      <div className="mt-6 mb-6 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+        <p className="text-sm text-blue-300 font-medium">📝 SQL Runner Notes</p>
+        <ul className="text-xs text-blue-200/70 mt-2 space-y-1">
+          <li>• <strong>SELECT queries only</strong> for now (INSERT/UPDATE/DELETE via REST API)</li>
+          <li>• Row-level security policies are automatically applied</li>
+          <li>• Syntax: <code className="bg-[hsl(217.2,32.6%,10%)] px-1 rounded">SELECT cols FROM table [WHERE condition] [LIMIT n]</code></li>
+        </ul>
+      </div>
 
       {/* Query Editor */}
       <div className="rounded-xl border border-[hsl(217.2,32.6%,17.5%)] p-4 mb-6">
@@ -57,7 +70,7 @@ export default function SQLRunnerPage() {
         />
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs text-[hsl(215,20.2%,45%)]">
-            Queries are routed through the REST API with RLS enforcement.
+            Results respect your RLS policies
           </p>
           <button
             onClick={runQuery}

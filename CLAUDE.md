@@ -8,7 +8,7 @@ Open-source BaaS platform in Go providing auth, auto-generated REST APIs, realti
 
 ## Stack
 
-- Go Fiber v2, GORM, MySQL 8
+- Go Fiber v2, GORM, PostgreSQL 15
 - Redis for rate limiting/sessions
 - MinIO for object storage
 - JWT (golang-jwt/jwt/v5), OAuth2 (Google/GitHub)
@@ -18,7 +18,7 @@ Open-source BaaS platform in Go providing auth, auto-generated REST APIs, realti
 
 ```bash
 # Infrastructure
-make docker-up          # Start MySQL 8, Redis 7, MinIO
+make docker-up          # Start PostgreSQL 15, Redis 7, MinIO
 make migrate            # Run GORM auto-migrations
 
 # Build all 8 binaries to ./bin/
@@ -33,7 +33,7 @@ make run-storage        # Port 8004
 make run-functions      # Port 8005
 
 # Test
-make test               # go test ./... -v (requires MySQL + Redis running)
+make test               # go test ./... -v (requires PostgreSQL + Redis running)
 make e2e                # bash e2e_test.sh
 
 # Single package test
@@ -55,7 +55,7 @@ Client → Gateway (8000) → Auth (8001)      — JWT, OAuth2, email verificati
                         → Storage (8004)  — MinIO/S3 uploads, signed URLs
                         → Functions (8005)— Deno/Node.js edge-function runner
                               ↓
-                    MySQL 8 / Redis 7 / MinIO
+                    PostgreSQL 15 / Redis 7 / MinIO
 ```
 
 Each service follows the same startup sequence: load config → connect DB/Redis → auto-migrate (dev only) → wire services/handlers → register middleware → register routes → graceful shutdown on SIGINT/SIGTERM.
@@ -113,7 +113,7 @@ var ErrUserExists = apperror.New(apperror.CodeUserExists, "user with this email 
 
 ## REST Engine (app/rest)
 
-The REST service provides dynamic CRUD on any MySQL table without code generation. It uses schema introspection (`engine/schema_cache.go`) to validate columns, and `engine/filter.go` to parse query-string filters (`?column=eq.value`). Row-level security is applied by `middleware.PolicyCheck`, which injects a WHERE clause via `c.Locals("policy_where", ...)` before the CRUD handler queries the DB.
+The REST service provides dynamic CRUD on any PostgreSQL table without code generation. It uses schema introspection (`engine/schema_cache.go`) to validate columns, and `engine/filter.go` to parse query-string filters (`?column=eq.value`). Row-level security is applied by `middleware.PolicyCheck`, which injects a WHERE clause via `c.Locals("policy_where", ...)` before the CRUD handler queries the DB.
 
 ## Environment Variables
 

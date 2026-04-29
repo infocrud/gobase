@@ -76,6 +76,7 @@ func main() {
 	verifyHandler := handlers.NewVerifyHandler(authService)
 	resetHandler := handlers.NewResetHandler(authService)
 	adminHandler := handlers.NewAdminHandler(authService)
+	auditHandler := handlers.NewAuditHandler(database)
 
 	// ─── Create Fiber App ─────────────────────────────
 	app := fiber.New(fiber.Config{
@@ -99,12 +100,15 @@ func main() {
 	})
 
 	// ─── Auth Routes ──────────────────────────────────
+	app.Use(middleware.AuditLog(database))
+
 	routes.Register(app, routes.Handlers{
 		Auth:   authHandler,
 		OAuth:  oauthHandler,
 		Verify: verifyHandler,
 		Reset:  resetHandler,
 		Admin:  adminHandler,
+		Audit:  auditHandler,
 	}, cfg.JWT.Secret)
 
 	// ─── Graceful Shutdown ────────────────────────────

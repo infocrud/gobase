@@ -1,5 +1,13 @@
 # Binaries
 bin/
+gobase
+gateway
+auth
+rest
+realtime
+storage
+functions
+graphql
 *.exe
 *.exe~
 *.dll

@@ -1,0 +1,15 @@
+{
+  "name": "gobase-blog",
+  "version": "1.0.0",
+  "description": "Headless blog/CMS example using GoBase",
+  "scripts": {
+    "start": "npx tsx index.ts"
+  },
+  "dependencies": {
+    "@gobase/sdk": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

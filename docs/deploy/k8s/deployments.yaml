@@ -1,0 +1,267 @@
+# GoBase Kubernetes Deployments
+# All services share the same Docker image; the entrypoint selects the binary.
+# Replace YOUR_REGISTRY/gobase:VERSION with your actual image tag.
+
+# ─── Gateway ──────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: gobase
+  labels:
+    app: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: YOUR_REGISTRY/gobase:VERSION
+          command: ["/usr/local/bin/gateway"]
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: gobase-config
+            - secretRef:
+                name: gobase-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# ─── Auth ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: gobase
+  labels:
+    app: auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      containers:
+        - name: auth
+          image: YOUR_REGISTRY/gobase:VERSION
+          command: ["/usr/local/bin/auth"]
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: gobase-config
+            - secretRef:
+                name: gobase-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# ─── REST ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest
+  namespace: gobase
+  labels:
+    app: rest
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rest
+  template:
+    metadata:
+      labels:
+        app: rest
+    spec:
+      containers:
+        - name: rest
+          image: YOUR_REGISTRY/gobase:VERSION
+          command: ["/usr/local/bin/rest"]
+          ports:
+            - containerPort: 8002
+          envFrom:
+            - configMapRef:
+                name: gobase-config
+            - secretRef:
+                name: gobase-secrets
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "128Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# ─── Realtime ─────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: realtime
+  namespace: gobase
+  labels:
+    app: realtime
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: realtime
+  template:
+    metadata:
+      labels:
+        app: realtime
+    spec:
+      containers:
+        - name: realtime
+          image: YOUR_REGISTRY/gobase:VERSION
+          command: ["/usr/local/bin/realtime"]
+          ports:
+            - containerPort: 8003
+          envFrom:
+            - configMapRef:
+                name: gobase-config
+            - secretRef:
+                name: gobase-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# ─── Storage ──────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage
+  namespace: gobase
+  labels:
+    app: storage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: storage
+  template:
+    metadata:
+      labels:
+        app: storage
+    spec:
+      containers:
+        - name: storage
+          image: YOUR_REGISTRY/gobase:VERSION
+          command: ["/usr/local/bin/storage"]
+          ports:
+            - containerPort: 8004
+          envFrom:
+            - configMapRef:
+                name: gobase-config
+            - secretRef:
+                name: gobase-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# ─── Functions ────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: functions
+  namespace: gobase
+  labels:
+    app: functions
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: functions
+  template:
+    metadata:
+      labels:
+        app: functions
+    spec:
+      containers:
+        - name: functions
+          image: YOUR_REGISTRY/gobase:VERSION
+          command: ["/usr/local/bin/functions"]
+          ports:
+            - containerPort: 8005
+          envFrom:
+            - configMapRef:
+                name: gobase-config
+            - secretRef:
+                name: gobase-secrets
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -1,26 +1,21 @@
 version: "3.9"
 
 services:
-  # ─── MySQL 8 ─────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: gobase-mysql
+  # ─── PostgreSQL 15 ───────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: gobase-postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: gobase
-      MYSQL_USER: gobase
-      MYSQL_PASSWORD: gobase_secret
+      POSTGRES_USER: gobase
+      POSTGRES_PASSWORD: gobase_secret
+      POSTGRES_DB: gobase
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
-    command: >
-      --default-authentication-plugin=mysql_native_password
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U gobase"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,6 +56,6 @@ services:
       retries: 5
 
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
   minio_data:

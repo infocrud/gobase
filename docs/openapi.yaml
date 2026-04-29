@@ -1,0 +1,1547 @@
+openapi: 3.0.3
+info:
+  title: GoBase API
+  description: |
+    The open-source Backend-as-a-Service for MySQL teams.
+    Auth, database, storage, realtime, and edge functions — all in one Go-powered platform.
+
+    ## Base URL
+    All requests go through the API Gateway at `http://localhost:8000`.
+    Individual services run on ports 8001–8005 but are not intended to be called directly.
+
+    ## Authentication
+    Protected endpoints require a JWT Bearer token obtained from `/auth/login` or `/auth/signup`.
+    Pass it as: `Authorization: Bearer <access_token>`
+
+    ## Response Format
+    All responses follow a consistent envelope:
+    ```json
+    { "success": true, "data": { ... } }
+    { "success": false, "error": "message" }
+    ```
+
+  version: 1.0.0
+  contact:
+    name: GoBase
+    url: https://github.com/infocrud/gobase
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development (via Gateway)
+  - url: https://api.your-domain.com
+    description: Production
+
+tags:
+  - name: Auth
+    description: User authentication — signup, login, token refresh, OAuth2, email verification, password reset
+  - name: Admin
+    description: Admin-only user management (requires admin role)
+  - name: Database
+    description: Dynamic CRUD on any MySQL table with Row-Level Security
+  - name: Storage
+    description: S3-compatible file storage powered by MinIO
+  - name: Realtime
+    description: WebSocket subscriptions for live database changes
+  - name: Functions
+    description: Deploy and invoke serverless edge functions (Deno/Node.js)
+  - name: Health
+    description: Service health and readiness probes
+
+# ─────────────────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Shared ───────────────────────────────────────────────
+    SuccessEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Invalid credentials"
+
+    # ── Auth ─────────────────────────────────────────────────
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: Short-lived JWT (default 15 min)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          description: Long-lived refresh token (default 7 days)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        provider:
+          type: string
+          enum: [email, google, github]
+          example: "email"
+        email_verified:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+
+    UserFull:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            role:
+              type: string
+              enum: [user, admin]
+              example: "user"
+            updated_at:
+              type: string
+              format: date-time
+
+    # ── Storage ──────────────────────────────────────────────
+    StorageObject:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "avatars/user-42.jpg"
+        size:
+          type: integer
+          example: 204800
+        etag:
+          type: string
+          example: '"d41d8cd98f00b204e9800998ecf8427e"'
+        content_type:
+          type: string
+          example: "image/jpeg"
+        last_modified:
+          type: string
+          format: date-time
+
+    Bucket:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "avatars"
+        created_at:
+          type: string
+          format: date-time
+
+    # ── Functions ────────────────────────────────────────────
+    FunctionInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "send-welcome-email.ts"
+        size:
+          type: integer
+          example: 1024
+        deployed_at:
+          type: string
+          format: date-time
+
+# ─────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────
+paths:
+
+  # ════════════════════════════════════════════════════════════
+  # HEALTH
+  # ════════════════════════════════════════════════════════════
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Returns 200 if the gateway process is alive. Used by Kubernetes liveness probes.
+      operationId: healthLive
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Returns 200 when the gateway and all dependencies (Redis) are ready to serve traffic.
+      operationId: healthReady
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+                  service:
+                    type: string
+                    example: "gateway"
+                  checks:
+                    type: object
+                    properties:
+                      redis:
+                        type: string
+                        example: "connected"
+        '503':
+          description: Service is not ready
+
+  # ════════════════════════════════════════════════════════════
+  # AUTH
+  # ════════════════════════════════════════════════════════════
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      description: |
+        Creates a new user account with email/password. On success returns the user object
+        and a token pair. A verification email is sent asynchronously if SMTP is configured.
+      operationId: authSignup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  minLength: 8
+                  description: Must contain uppercase, lowercase, digit, and special character
+                  example: "Secure@123"
+            example:
+              email: "user@example.com"
+              password: "Secure@123"
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user:
+                            $ref: '#/components/schemas/User'
+                          tokens:
+                            $ref: '#/components/schemas/TokenPair'
+        '400':
+          description: Validation error (missing fields, weak password, invalid email)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email and password
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  example: "Secure@123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user:
+                            $ref: '#/components/schemas/User'
+                          tokens:
+                            $ref: '#/components/schemas/TokenPair'
+        '400':
+          description: Missing email or password
+        '401':
+          description: Invalid credentials
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Exchange a valid refresh token for a new token pair. The old refresh token is invalidated.
+      operationId: authRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: New token pair issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tokens:
+                            $ref: '#/components/schemas/TokenPair'
+        '401':
+          description: Invalid or revoked refresh token
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current user
+      description: Revokes all refresh tokens for the authenticated user.
+      operationId: authLogout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Successfully logged out"
+        '401':
+          description: Missing or invalid token
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      description: Returns the ID and email of the authenticated user from the JWT claims.
+      operationId: authMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 42
+                          email:
+                            type: string
+                            example: "user@example.com"
+        '401':
+          description: Missing or invalid token
+
+  /auth/verify:
+    get:
+      tags: [Auth]
+      summary: Verify email address
+      description: Confirms a user's email using the token from the verification email.
+      operationId: authVerifyEmail
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Email verification token
+      responses:
+        '200':
+          description: Email verified (or already verified)
+        '400':
+          description: Invalid token
+        '410':
+          description: Token expired
+
+  /auth/verify/resend:
+    post:
+      tags: [Auth]
+      summary: Resend verification email
+      description: Sends a new verification email. Always returns success to prevent user enumeration.
+      operationId: authResendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+      responses:
+        '200':
+          description: Verification email sent (if account exists)
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      description: Sends a password reset email. Always returns success to prevent user enumeration.
+      operationId: authForgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+      responses:
+        '200':
+          description: Reset email sent (if account exists)
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      operationId: authResetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                  description: Token from the reset email
+                new_password:
+                  type: string
+                  minLength: 8
+                  example: "NewSecure@456"
+      responses:
+        '200':
+          description: Password reset successfully
+        '400':
+          description: Invalid token or weak password
+        '410':
+          description: Token expired
+
+  /auth/oauth/{provider}:
+    get:
+      tags: [Auth]
+      summary: Start OAuth2 flow
+      description: Redirects the browser to the OAuth2 provider's authorization page.
+      operationId: authOAuthRedirect
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, github]
+      responses:
+        '302':
+          description: Redirect to provider
+
+  /auth/oauth/{provider}/callback:
+    get:
+      tags: [Auth]
+      summary: OAuth2 callback
+      description: |
+        Handles the provider callback, exchanges the code for tokens, creates/updates the user,
+        and returns a token pair. In production this typically redirects to your frontend with tokens in the URL fragment.
+      operationId: authOAuthCallback
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, github]
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth login successful — returns token pair
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user:
+                            $ref: '#/components/schemas/User'
+                          tokens:
+                            $ref: '#/components/schemas/TokenPair'
+        '401':
+          description: OAuth flow failed
+
+  # ════════════════════════════════════════════════════════════
+  # ADMIN
+  # ════════════════════════════════════════════════════════════
+  /auth/admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users
+      description: Paginated list of all users. Requires admin role.
+      operationId: adminListUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          users:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/UserFull'
+                          total:
+                            type: integer
+                            example: 150
+                          page:
+                            type: integer
+                            example: 1
+                          limit:
+                            type: integer
+                            example: 20
+                          total_pages:
+                            type: integer
+                            example: 8
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Not an admin
+
+  /auth/admin/users/{id}:
+    get:
+      tags: [Admin]
+      summary: Get a user by ID
+      operationId: adminGetUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserFull'
+        '404':
+          description: User not found
+
+    patch:
+      tags: [Admin]
+      summary: Update a user's role
+      operationId: adminUpdateUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [user, admin]
+                  example: "admin"
+      responses:
+        '200':
+          description: User updated
+        '400':
+          description: Invalid role value
+        '404':
+          description: User not found
+
+    delete:
+      tags: [Admin]
+      summary: Delete a user
+      operationId: adminDeleteUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted
+        '404':
+          description: User not found
+
+  # ════════════════════════════════════════════════════════════
+  # DATABASE (REST ENGINE)
+  # ════════════════════════════════════════════════════════════
+  /rest/v1/_schema:
+    get:
+      tags: [Database]
+      summary: List database tables
+      description: Returns all user-created tables with their column definitions. Uses cached schema (refreshed on startup or via POST /_schema/refresh).
+      operationId: dbListSchema
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Schema info
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tables:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "products"
+                                columns:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      name:
+                                        type: string
+                                      type:
+                                        type: string
+                                      nullable:
+                                        type: boolean
+
+  /rest/v1/_schema/refresh:
+    post:
+      tags: [Database]
+      summary: Refresh schema cache
+      description: Forces a re-introspection of the database schema. Useful after running migrations.
+      operationId: dbRefreshSchema
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Schema refreshed
+
+  /rest/v1/_policies/reload:
+    post:
+      tags: [Database]
+      summary: Reload RLS policies
+      description: Reloads all Row-Level Security policies from the database without restarting the service.
+      operationId: dbReloadPolicies
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Policies reloaded
+
+  /rest/v1/{table}:
+    get:
+      tags: [Database]
+      summary: Query rows
+      description: |
+        Returns rows from any table. Supports filtering, pagination, ordering, and column selection.
+        Row-Level Security is enforced automatically based on the authenticated user's policies.
+
+        **Filter operators** (passed as query params):
+        | Syntax | SQL equivalent |
+        |---|---|
+        | `?column=eq.value` | `column = 'value'` |
+        | `?column=neq.value` | `column != 'value'` |
+        | `?column=lt.value` | `column < value` |
+        | `?column=lte.value` | `column <= value` |
+        | `?column=gt.value` | `column > value` |
+        | `?column=gte.value` | `column >= value` |
+        | `?column=like.%value%` | `column LIKE '%value%'` |
+        | `?column=ilike.%value%` | `column ILIKE '%value%'` |
+        | `?column=in.(a,b,c)` | `column IN ('a','b','c')` |
+        | `?column=is.null` | `column IS NULL` |
+      operationId: dbQueryRows
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+          example: products
+        - name: select
+          in: query
+          schema:
+            type: string
+          description: Comma-separated column names. Defaults to `*`.
+          example: "id,name,price"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 1000
+          example: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          example: 0
+        - name: order
+          in: query
+          schema:
+            type: string
+          description: "Column and direction: `column.asc` or `column.desc`"
+          example: "created_at.desc"
+        - name: "<column>"
+          in: query
+          schema:
+            type: string
+          description: "Filter on any column using operator syntax: `?price=lt.100`"
+          example: "eq.active"
+      responses:
+        '200':
+          description: Rows returned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items:
+                              type: object
+                          count:
+                            type: integer
+                          limit:
+                            type: integer
+                          offset:
+                            type: integer
+        '400':
+          description: Invalid table or filter
+        '401':
+          description: Unauthenticated
+
+    post:
+      tags: [Database]
+      summary: Insert a row
+      description: Inserts a new row into the table. Returns the created row with its generated ID.
+      operationId: dbInsertRow
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+          example: products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Key-value pairs matching the table's column names
+            example:
+              name: "Go Plushie"
+              price: 19.99
+              in_stock: true
+      responses:
+        '201':
+          description: Row created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid column or value
+        '401':
+          description: Unauthenticated
+
+  /rest/v1/{table}/{id}:
+    get:
+      tags: [Database]
+      summary: Get a row by ID
+      operationId: dbGetRow
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Row found
+        '404':
+          description: Row not found
+
+    patch:
+      tags: [Database]
+      summary: Update a row by ID
+      description: Partial update — only send the fields you want to change.
+      operationId: dbUpdateRow
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              price: 24.99
+              in_stock: false
+      responses:
+        '200':
+          description: Row updated
+        '404':
+          description: Row not found
+
+    delete:
+      tags: [Database]
+      summary: Delete a row by ID
+      operationId: dbDeleteRow
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Row deleted
+        '404':
+          description: Row not found
+
+  # ════════════════════════════════════════════════════════════
+  # STORAGE — BUCKETS
+  # ════════════════════════════════════════════════════════════
+  /storage/v1/bucket:
+    get:
+      tags: [Storage]
+      summary: List buckets
+      operationId: storageListBuckets
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of buckets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          buckets:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Bucket'
+                          count:
+                            type: integer
+
+    post:
+      tags: [Storage]
+      summary: Create a bucket
+      operationId: storageCreateBucket
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: "avatars"
+      responses:
+        '201':
+          description: Bucket created
+        '400':
+          description: Name missing or invalid
+
+  /storage/v1/bucket/{name}:
+    delete:
+      tags: [Storage]
+      summary: Delete a bucket
+      description: The bucket must be empty before deletion.
+      operationId: storageDeleteBucket
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: avatars
+      responses:
+        '200':
+          description: Bucket deleted
+        '500':
+          description: Bucket not empty or not found
+
+  # ════════════════════════════════════════════════════════════
+  # STORAGE — OBJECTS
+  # ════════════════════════════════════════════════════════════
+  /storage/v1/object/{bucket}:
+    get:
+      tags: [Storage]
+      summary: List files in a bucket
+      operationId: storageListObjects
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucket
+          in: path
+          required: true
+          schema:
+            type: string
+          example: avatars
+        - name: prefix
+          in: query
+          schema:
+            type: string
+          description: Filter by path prefix
+          example: "2024/"
+      responses:
+        '200':
+          description: File list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          bucket:
+                            type: string
+                          prefix:
+                            type: string
+                          objects:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/StorageObject'
+                          count:
+                            type: integer
+
+  /storage/v1/object/{bucket}/{path}:
+    post:
+      tags: [Storage]
+      summary: Upload a file
+      description: Upload a file using multipart/form-data. The `file` field must contain the binary data.
+      operationId: storageUploadObject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucket
+          in: path
+          required: true
+          schema:
+            type: string
+          example: avatars
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+          example: user-42/avatar.jpg
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StorageObject'
+        '400':
+          description: Missing file
+
+    get:
+      tags: [Storage]
+      summary: Download a file
+      description: Returns the raw file bytes with appropriate Content-Type and caching headers.
+      operationId: storageDownloadObject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucket
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+
+    delete:
+      tags: [Storage]
+      summary: Delete a file
+      operationId: storageDeleteObject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucket
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File deleted
+
+  # ════════════════════════════════════════════════════════════
+  # STORAGE — SIGNED URLS
+  # ════════════════════════════════════════════════════════════
+  /storage/v1/sign/{bucket}/{path}:
+    post:
+      tags: [Storage]
+      summary: Generate a signed download URL
+      description: |
+        Creates a presigned URL that allows unauthenticated download of a private file.
+        Default expiry is 1 hour if `expires_in` is omitted.
+      operationId: storageSignDownload
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucket
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_in:
+                  type: string
+                  description: "Go duration string: 1h, 30m, 24h"
+                  example: "1h"
+      responses:
+        '200':
+          description: Signed URL
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          signed_url:
+                            type: string
+                            example: "https://minio:9000/avatars/user-42.jpg?X-Amz-Signature=..."
+                          key:
+                            type: string
+                          method:
+                            type: string
+                            example: "GET"
+
+  /storage/v1/sign/upload/{bucket}/{path}:
+    post:
+      tags: [Storage]
+      summary: Generate a signed upload URL
+      description: |
+        Creates a presigned PUT URL for direct browser-to-storage uploads without proxying through GoBase.
+        The client PUTs the file directly to the returned URL.
+      operationId: storageSignUpload
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bucket
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_in:
+                  type: string
+                  example: "30m"
+      responses:
+        '200':
+          description: Signed upload URL
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          signed_url:
+                            type: string
+                          key:
+                            type: string
+                          method:
+                            type: string
+                            example: "PUT"
+
+  # ════════════════════════════════════════════════════════════
+  # REALTIME
+  # ════════════════════════════════════════════════════════════
+  /realtime/ws:
+    get:
+      tags: [Realtime]
+      summary: Connect via WebSocket
+      description: |
+        Upgrades the HTTP connection to WebSocket. Authenticate using the `token` query parameter
+        (JWT access token — standard `Authorization` header cannot be sent with WebSocket handshakes).
+
+        Once connected, send JSON messages to subscribe/unsubscribe from channels:
+
+        **Subscribe:**
+        ```json
+        { "type": "subscribe", "channel": "table:products" }
+        ```
+
+        **Unsubscribe:**
+        ```json
+        { "type": "unsubscribe", "channel": "table:products" }
+        ```
+
+        **Incoming events:**
+        ```json
+        { "type": "INSERT", "table": "products", "record": { ... } }
+        { "type": "UPDATE", "table": "products", "record": { ... } }
+        { "type": "DELETE", "table": "products", "old_record": { ... } }
+        ```
+      operationId: realtimeConnect
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: JWT access token
+      responses:
+        '101':
+          description: WebSocket connection established
+        '401':
+          description: Missing or invalid token
+        '426':
+          description: Upgrade required (non-WebSocket request)
+
+  /realtime/stats:
+    get:
+      tags: [Realtime]
+      summary: WebSocket hub statistics
+      description: Returns current active connection and channel counts.
+      operationId: realtimeStats
+      responses:
+        '200':
+          description: Hub stats
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          clients:
+                            type: integer
+                            example: 42
+                          channels:
+                            type: integer
+                            example: 7
+
+  # ════════════════════════════════════════════════════════════
+  # FUNCTIONS
+  # ════════════════════════════════════════════════════════════
+  /functions/v1/deploy:
+    post:
+      tags: [Functions]
+      summary: Deploy an edge function
+      description: |
+        Deploy a JavaScript or TypeScript function. Send the code as:
+        - Raw request body with `?name=my-function.ts`, or
+        - Multipart file upload with a `file` field
+
+        The function name is used to invoke it later via `POST /functions/v1/{name}`.
+      operationId: functionsDeploy
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "send-welcome-email.ts"
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: |
+                export default function handler(payload) {
+                  return { message: `Hello, ${payload.name}!` };
+                }
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Function deployed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                          function:
+                            $ref: '#/components/schemas/FunctionInfo'
+        '400':
+          description: Missing name or code
+
+  /functions/v1/:
+    get:
+      tags: [Functions]
+      summary: List deployed functions
+      operationId: functionsList
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Function list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          functions:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/FunctionInfo'
+                          count:
+                            type: integer
+
+  /functions/v1/{name}:
+    post:
+      tags: [Functions]
+      summary: Invoke a function
+      description: |
+        Executes the named function in an isolated Deno or Node.js runtime.
+        The request body is passed as the function's payload (as a string).
+        Returns `stdout`, `stderr`, and execution `duration`.
+      operationId: functionsInvoke
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "send-welcome-email.ts"
+        - name: timeout
+          in: query
+          schema:
+            type: string
+          description: "Max execution time as Go duration (e.g. '5s', '30s'). Default: 30s"
+          example: "10s"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              name: "Alice"
+              email: "alice@example.com"
+      responses:
+        '200':
+          description: Function executed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          output:
+                            type: string
+                            example: '{"message":"Hello, Alice!"}'
+                          stderr:
+                            type: string
+                            example: ""
+                          duration:
+                            type: string
+                            example: "42ms"
+        '404':
+          description: Function not found
+        '500':
+          description: Function threw an error (stdout/stderr included in response)
+
+    delete:
+      tags: [Functions]
+      summary: Delete a function
+      operationId: functionsDelete
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Function deleted
+        '404':
+          description: Function not found

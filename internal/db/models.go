@@ -74,3 +74,36 @@ type Project struct {
 func (Project) TableName() string {
 	return "projects"
 }
+
+// APIKey is a named bearer token scoped to a Project.
+type APIKey struct {
+	BaseModel
+	ProjectID   uint   `gorm:"index;not null" json:"project_id"`
+	Name        string `gorm:"type:varchar(255);not null" json:"name"`
+	KeyHash     string `gorm:"type:varchar(255);uniqueIndex;not null" json:"-"`
+	KeyPreview  string `gorm:"type:varchar(12);not null" json:"key_preview"` // first 8 chars shown after creation
+	Scopes      string `gorm:"type:varchar(512);default:'read'" json:"scopes"` // comma-separated: read,write,admin
+	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
+	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
+
+	Project Project `gorm:"foreignKey:ProjectID" json:"-"`
+}
+
+func (APIKey) TableName() string { return "api_keys" }
+
+// AuditLog records every authenticated state-changing request.
+type AuditLog struct {
+	BaseModel
+	UserID     *uint  `gorm:"index" json:"user_id,omitempty"`
+	UserEmail  string `gorm:"type:varchar(255)" json:"user_email,omitempty"`
+	Action     string `gorm:"type:varchar(100);not null" json:"action"` // e.g. "rest.insert", "auth.login"
+	Resource   string `gorm:"type:varchar(255)" json:"resource"`          // e.g. "posts/42"
+	Method     string `gorm:"type:varchar(10)" json:"method"`
+	StatusCode int    `json:"status_code"`
+	IPAddress  string `gorm:"type:varchar(64)" json:"ip_address,omitempty"`
+	UserAgent  string `gorm:"type:varchar(512)" json:"user_agent,omitempty"`
+	RequestID  string `gorm:"type:varchar(64);index" json:"request_id,omitempty"`
+	Metadata   string `gorm:"type:json" json:"metadata,omitempty"`
+}
+
+func (AuditLog) TableName() string { return "audit_logs" }

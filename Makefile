@@ -1,4 +1,4 @@
-.PHONY: help run-gateway run-auth run-rest run-realtime run-storage run-functions build migrate cleanup docker-up docker-down clean tidy vet test
+.PHONY: help run-gateway run-auth run-rest run-realtime run-storage run-functions run-graphql run-controlplane run-orchestrator build build-cli migrate cleanup docker-up docker-down clean tidy vet test
 
 # ─── Default ───────────────────────────────────────────
 help: ## Show this help
@@ -23,6 +23,9 @@ run-storage: ## Run the storage service (port 8004)
 run-functions: ## Run the functions service (port 8005)
 	go run ./app/functions
 
+run-graphql: ## Run the GraphQL service (port 8006)
+	go run ./app/graphql
+
 run-controlplane: ## Run the control plane service (port 8008)
 	go run ./app/controlplane
 
@@ -32,14 +35,22 @@ run-orchestrator: ## Run the infrastructure orchestrator
 # ─── Build ─────────────────────────────────────────────
 build: ## Build all service binaries to ./bin/
 	@mkdir -p bin
-	go build -o bin/gateway   ./app/gateway
-	go build -o bin/auth      ./app/auth
-	go build -o bin/rest      ./app/rest
-	go build -o bin/realtime  ./app/realtime
-	go build -o bin/storage   ./app/storage
-	go build -o bin/functions ./app/functions
-	go build -o bin/cleanup   ./app/cleanup
-	@echo "✅ All binaries built in ./bin/"
+	go build -o bin/gateway      ./app/gateway
+	go build -o bin/auth         ./app/auth
+	go build -o bin/rest         ./app/rest
+	go build -o bin/realtime     ./app/realtime
+	go build -o bin/storage      ./app/storage
+	go build -o bin/functions    ./app/functions
+	go build -o bin/graphql      ./app/graphql
+	go build -o bin/controlplane ./app/controlplane
+	go build -o bin/orchestrator ./app/orchestrator
+	go build -o bin/cleanup      ./app/cleanup
+	@echo "All binaries built in ./bin/"
+
+build-cli: ## Build the gobase CLI to ./bin/gobase
+	@mkdir -p bin
+	go build -o bin/gobase ./cmd/gobase
+	@echo "CLI built: ./bin/gobase"
 
 # ─── Database ──────────────────────────────────────────
 migrate: ## Run GORM auto-migrations
@@ -49,7 +60,7 @@ cleanup: ## Clean up expired/revoked refresh tokens
 	go run ./app/cleanup
 
 # ─── Docker ────────────────────────────────────────────
-docker-up: ## Start MySQL, Redis, MinIO via Docker Compose
+docker-up: ## Start PostgreSQL, Redis, MinIO via Docker Compose
 	docker compose up -d
 	@echo "⏳ Waiting for services to be healthy..."
 	@sleep 5

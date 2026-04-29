@@ -1,0 +1,16 @@
+{
+  "name": "gobase-saas-starter",
+  "version": "1.0.0",
+  "description": "SaaS starter example using GoBase",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx tsx index.ts"
+  },
+  "dependencies": {
+    "@gobase/sdk": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
