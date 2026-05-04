@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: GoBase API
   description: |
-    The open-source Backend-as-a-Service for MySQL teams.
+    The open-source Backend-as-a-Service built on PostgreSQL.
     Auth, database, storage, realtime, and edge functions — all in one Go-powered platform.
 
     ## Base URL
@@ -40,7 +40,7 @@ tags:
   - name: Admin
     description: Admin-only user management (requires admin role)
   - name: Database
-    description: Dynamic CRUD on any MySQL table with Row-Level Security
+    description: Dynamic CRUD on any PostgreSQL table with Row-Level Security
   - name: Storage
     description: S3-compatible file storage powered by MinIO
   - name: Realtime

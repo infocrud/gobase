@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/infocrud/gobase/main/assets/gobase-logo.svg" alt="GoBase" width="320" />
-  <p><strong>The open-source Backend-as-a-Service built for speed with Go and MySQL.</strong></p>
+  <p><strong>The open-source Backend-as-a-Service built for speed with Go and PostgreSQL.</strong></p>
 
   <!-- Badges -->
   <p>
@@ -34,7 +34,7 @@
 ## 🥊 Why GoBase? (vs. Supabase/Firebase)
 
 While Supabase is incredible, the Elixir + PostgreSQL stack can be heavy to self-host and complex to extend if you aren't familiar with Elixir. 
-**GoBase** is built specifically for developers who prefer the **Go ecosystem**, require a **smaller memory footprint**, and prefer **MySQL**. It runs blazingly fast on inexpensive VPS instances and compiles down to lightweight binaries.
+**GoBase** is built specifically for developers who prefer the **Go ecosystem**, require a **smaller memory footprint**, and want **PostgreSQL** without the heavy Elixir/Supabase stack. It runs blazingly fast on inexpensive VPS instances and compiles down to lightweight binaries.
 
 ## 🏗️ Architecture
 
@@ -50,10 +50,10 @@ graph TD;
         GW --> Funcs[🦕 Edge Functions :8005]
     end
 
-    Auth --> MySQL[(MySQL 8.0)]
-    REST --> MySQL
+    Auth --> PG[(PostgreSQL 15)]
+    REST --> PG
     REST --> Redis[(Redis)]
-    RT --> MySQL
+    RT --> PG
     RT --> Redis
     
     Storage --> MinIO[(MinIO S3)]
@@ -77,7 +77,7 @@ cp .env.example .env
 
 ### 2. Start the Infrastructure
 ```bash
-make docker-up   # Spins up MySQL, Redis, and MinIO locally
+make docker-up   # Spins up PostgreSQL 15, Redis, and MinIO locally
 ```
 
 ### 3. Run Migrations

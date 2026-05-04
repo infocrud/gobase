@@ -19,7 +19,7 @@ type BaseModel struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
-// Connect establishes a GORM MySQL connection with connection pooling
+// Connect establishes a GORM PostgreSQL connection with connection pooling
 // and retry logic with exponential backoff.
 func Connect(cfg config.DBConfig) (*gorm.DB, error) {
 	if cfg.Host == "" {

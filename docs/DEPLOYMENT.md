@@ -186,13 +186,13 @@ ENTRYPOINT ["gateway"]
     build: { context: ., dockerfile: Dockerfile }
     entrypoint: ["/usr/local/bin/auth"]
     env_file: .env
-    depends_on: [mysql]
+    depends_on: [postgres]
 
   rest:
     build: { context: ., dockerfile: Dockerfile }
     entrypoint: ["/usr/local/bin/rest"]
     env_file: .env
-    depends_on: [mysql]
+    depends_on: [postgres]
 
   # ... similar for realtime, storage, functions
 ```

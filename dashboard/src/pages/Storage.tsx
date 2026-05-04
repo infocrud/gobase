@@ -103,7 +103,6 @@ export default function StoragePage() {
             + Create
           </button>
         </div>
-      </div>
 
       {/* File Upload */}
       {selectedBucket && (

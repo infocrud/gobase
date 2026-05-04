@@ -120,7 +120,7 @@ The REST service provides dynamic CRUD on any PostgreSQL table without code gene
 See `.env.example` for all 40+ variables. Critical ones:
 
 - `JWT_SECRET` — must be a 64-char random hex in production
-- `DB_*` — MySQL connection
+- `DB_*` — PostgreSQL connection
 - `REDIS_*` — Redis connection
 - `MINIO_*` — object storage
 - `SMTP_*` — email for verification/reset flows
