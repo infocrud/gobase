@@ -18,6 +18,7 @@ export default defineConfig({
       '/storage': 'http://localhost:8000',
       '/functions': 'http://localhost:8000',
       '/realtime': 'http://localhost:8000',
+      '/controlplane': 'http://localhost:8000',
     },
   },
 })

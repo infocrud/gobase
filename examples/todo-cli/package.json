@@ -1,0 +1,14 @@
+{
+  "name": "gobase-todo-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sample multi-user Todo app on GoBase (Auth + REST + RLS)",
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0"
+  }
+}

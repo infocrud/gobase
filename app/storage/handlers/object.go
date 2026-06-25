@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -79,14 +80,26 @@ func (h *ObjectHandler) Download(c *fiber.Ctx) error {
 		log.Error().Err(err).Str("bucket", bucket).Str("path", objectPath).Msg("Download failed")
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to download file")
 	}
-	defer obj.Close()
+
+	// Read the object fully before returning. We must NOT stream the minio.Object
+	// with a deferred Close(): Fiber writes the response body after the handler
+	// returns, by which point a deferred Close() would have already shut the reader,
+	// closing the connection before the first byte is sent.
+	data, err := io.ReadAll(obj)
+	obj.Close()
+	if err != nil {
+		if strings.Contains(err.Error(), "NoSuchKey") || strings.Contains(err.Error(), "not found") {
+			return response.Error(c, fiber.StatusNotFound, "File not found")
+		}
+		log.Error().Err(err).Str("bucket", bucket).Str("path", objectPath).Msg("Download read failed")
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to download file")
+	}
 
 	c.Set("Content-Type", stat.ContentType)
-	c.Set("Content-Length", fmt.Sprintf("%d", stat.Size))
 	c.Set("ETag", stat.ETag)
 	c.Set("Cache-Control", "public, max-age=3600")
 
-	return c.SendStream(obj, int(stat.Size))
+	return c.Send(data)
 }
 
 // Delete handles DELETE /storage/v1/object/:bucket/*path — delete a file.

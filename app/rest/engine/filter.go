@@ -89,11 +89,11 @@ func BuildWhereClause(filters []Filter) (string, []interface{}) {
 		case "IS":
 			// IS NULL / IS NOT NULL
 			if strings.ToUpper(f.Value) == "NULL" {
-				conditions = append(conditions, fmt.Sprintf("`%s` IS NULL", f.Column))
+				conditions = append(conditions, fmt.Sprintf(`"%s" IS NULL`, f.Column))
 			} else if strings.ToUpper(f.Value) == "TRUE" {
-				conditions = append(conditions, fmt.Sprintf("`%s` IS TRUE", f.Column))
+				conditions = append(conditions, fmt.Sprintf(`"%s" IS TRUE`, f.Column))
 			} else if strings.ToUpper(f.Value) == "FALSE" {
-				conditions = append(conditions, fmt.Sprintf("`%s` IS FALSE", f.Column))
+				conditions = append(conditions, fmt.Sprintf(`"%s" IS FALSE`, f.Column))
 			}
 		case "IN":
 			// Parse comma-separated values: in.(1,2,3)
@@ -105,9 +105,9 @@ func BuildWhereClause(filters []Filter) (string, []interface{}) {
 				placeholders[i] = "?"
 				params = append(params, strings.TrimSpace(item))
 			}
-			conditions = append(conditions, fmt.Sprintf("`%s` IN (%s)", f.Column, strings.Join(placeholders, ",")))
+			conditions = append(conditions, fmt.Sprintf(`"%s" IN (%s)`, f.Column, strings.Join(placeholders, ",")))
 		default:
-			conditions = append(conditions, fmt.Sprintf("`%s` %s ?", f.Column, f.Operator))
+			conditions = append(conditions, fmt.Sprintf(`"%s" %s ?`, f.Column, f.Operator))
 			params = append(params, f.Value)
 		}
 	}
@@ -160,7 +160,7 @@ func ParseOrder(orderParam string, schema *TableSchema) (string, error) {
 		}
 	}
 
-	return fmt.Sprintf("`%s` %s", column, direction), nil
+	return fmt.Sprintf(`"%s" %s`, column, direction), nil
 }
 
 func columnExists(schema *TableSchema, column string) bool {

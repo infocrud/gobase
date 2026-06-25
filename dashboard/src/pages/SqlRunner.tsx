@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { authHeaders } from '../store/auth';
+import { apiFetch } from '../store/auth';
 
 export default function SQLRunnerPage() {
   const [query, setQuery] = useState('SELECT * FROM policies LIMIT 10;');
@@ -28,7 +28,7 @@ export default function SQLRunnerPage() {
       if (cols !== '*') url += `select=${cols.trim()}&`;
       if (limit) url += `limit=${limit}&`;
 
-      const res = await fetch(url, { headers: authHeaders() });
+      const res = await apiFetch(url);
       const data = await res.json();
 
       if (data.success) {
@@ -45,31 +45,31 @@ export default function SQLRunnerPage() {
   return (
     <div className="p-6">
       <div>
-        <h2 className="text-2xl font-bold text-white">SQL Runner</h2>
-        <p className="text-sm text-[hsl(215,20.2%,65.1%)] mt-1">Execute SELECT queries with RLS enforcement</p>
+        <h2 className="text-2xl font-bold text-slate-900">SQL Runner</h2>
+        <p className="text-sm text-[#64748b] mt-1">Execute SELECT queries with RLS enforcement</p>
       </div>
 
       {/* Help Card */}
       <div className="mt-6 mb-6 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
-        <p className="text-sm text-blue-300 font-medium">📝 SQL Runner Notes</p>
-        <ul className="text-xs text-blue-200/70 mt-2 space-y-1">
+        <p className="text-sm text-blue-700 font-medium">📝 SQL Runner Notes</p>
+        <ul className="text-xs text-blue-700 mt-2 space-y-1">
           <li>• <strong>SELECT queries only</strong> for now (INSERT/UPDATE/DELETE via REST API)</li>
           <li>• Row-level security policies are automatically applied</li>
-          <li>• Syntax: <code className="bg-[hsl(217.2,32.6%,10%)] px-1 rounded">SELECT cols FROM table [WHERE condition] [LIMIT n]</code></li>
+          <li>• Syntax: <code className="bg-[#f1f5f9] px-1 rounded">SELECT cols FROM table [WHERE condition] [LIMIT n]</code></li>
         </ul>
       </div>
 
       {/* Query Editor */}
-      <div className="rounded-xl border border-[hsl(217.2,32.6%,17.5%)] p-4 mb-6">
+      <div className="rounded-xl border border-[#e2e8f0] p-4 mb-6">
         <textarea
           value={query}
           onChange={e => setQuery(e.target.value)}
           rows={5}
           placeholder="SELECT * FROM your_table LIMIT 10;"
-          className="w-full px-4 py-3 rounded-lg bg-[hsl(222.2,84%,3%)] border border-[hsl(217.2,32.6%,17.5%)] text-green-400 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+          className="w-full px-4 py-3 rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] text-emerald-700 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
         />
         <div className="flex items-center justify-between mt-3">
-          <p className="text-xs text-[hsl(215,20.2%,45%)]">
+          <p className="text-xs text-[#94a3b8]">
             Results respect your RLS policies
           </p>
           <button
@@ -84,20 +84,20 @@ export default function SQLRunnerPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono">
+        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-mono">
           {error}
         </div>
       )}
 
       {/* Results */}
       {results && Array.isArray(results) && results.length > 0 && (
-        <div className="rounded-xl border border-[hsl(217.2,32.6%,17.5%)] overflow-hidden">
+        <div className="rounded-xl border border-[#e2e8f0] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[hsl(217.2,32.6%,12%)]">
+                <tr className="bg-[#f1f5f9]">
                   {Object.keys(results[0]).map(key => (
-                    <th key={key} className="px-4 py-3 text-left text-xs font-semibold text-[hsl(215,20.2%,65.1%)] uppercase tracking-wider">
+                    <th key={key} className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
                       {key}
                     </th>
                   ))}
@@ -105,10 +105,10 @@ export default function SQLRunnerPage() {
               </thead>
               <tbody>
                 {results.map((row: any, i: number) => (
-                  <tr key={i} className="border-t border-[hsl(217.2,32.6%,17.5%)] hover:bg-[hsl(217.2,32.6%,10%)] transition-colors">
+                  <tr key={i} className="border-t border-[#e2e8f0] hover:bg-[#f1f5f9] transition-colors">
                     {Object.values(row).map((val: any, j: number) => (
-                      <td key={j} className="px-4 py-3 text-[hsl(210,40%,90%)] font-mono text-xs max-w-64 truncate">
-                        {val === null ? <span className="text-[hsl(215,20.2%,45%)] italic">null</span> : String(val)}
+                      <td key={j} className="px-4 py-3 text-[#1e293b] font-mono text-xs max-w-64 truncate">
+                        {val === null ? <span className="text-[#94a3b8] italic">null</span> : String(val)}
                       </td>
                     ))}
                   </tr>
@@ -116,14 +116,14 @@ export default function SQLRunnerPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 bg-[hsl(217.2,32.6%,10%)] border-t border-[hsl(217.2,32.6%,17.5%)] text-xs text-[hsl(215,20.2%,65.1%)]">
+          <div className="px-4 py-3 bg-[#f1f5f9] border-t border-[#e2e8f0] text-xs text-[#64748b]">
             {results.length} rows returned
           </div>
         </div>
       )}
 
       {results && Array.isArray(results) && results.length === 0 && (
-        <div className="p-8 text-center text-[hsl(215,20.2%,65.1%)] rounded-xl border border-[hsl(217.2,32.6%,17.5%)]">
+        <div className="p-8 text-center text-[#64748b] rounded-xl border border-[#e2e8f0]">
           Query executed successfully — 0 rows returned
         </div>
       )}

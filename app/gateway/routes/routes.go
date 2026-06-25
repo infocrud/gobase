@@ -13,6 +13,7 @@ func Register(app *fiber.App, cfg config.ServicesConfig) {
 	realtimeURL := cfg.RealtimeURL
 	storageURL := cfg.StorageURL
 	functionsURL := cfg.FunctionsURL
+	controlPlaneURL := cfg.ControlPlaneURL
 
 	// Auth service
 	app.All("/auth/*", func(c *fiber.Ctx) error {
@@ -57,6 +58,16 @@ func Register(app *fiber.App, cfg config.ServicesConfig) {
 	// Functions service
 	app.All("/functions/*", func(c *fiber.Ctx) error {
 		url := functionsURL + c.OriginalURL()
+		if err := proxy.Do(c, url); err != nil {
+			return err
+		}
+		c.Response().Header.Del(fiber.HeaderServer)
+		return nil
+	})
+
+	// Control plane service (organizations, projects, API keys)
+	app.All("/controlplane/*", func(c *fiber.Ctx) error {
+		url := controlPlaneURL + c.OriginalURL()
 		if err := proxy.Do(c, url); err != nil {
 			return err
 		}

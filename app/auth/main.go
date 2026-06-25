@@ -72,7 +72,10 @@ func main() {
 
 	// ─── Initialize Handlers ──────────────────────────
 	authHandler := handlers.NewAuthHandler(authService)
-	oauthHandler := handlers.NewOAuthHandler(authService, oauthService)
+	oauthHandler := handlers.NewOAuthHandler(
+		authService, oauthService, cfg.Services.DashboardURL,
+		cfg.OAuth.Google.ClientID != "", cfg.OAuth.GitHub.ClientID != "",
+	)
 	verifyHandler := handlers.NewVerifyHandler(authService)
 	resetHandler := handlers.NewResetHandler(authService)
 	adminHandler := handlers.NewAdminHandler(authService)

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GoBase Todo — Sample App</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 40px 20px; }
+    h1 { font-size: 26px; margin: 0 0 4px; background: linear-gradient(90deg,#60a5fa,#22d3ee);
+         -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { color: #94a3b8; font-size: 13px; margin-bottom: 28px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 22px; }
+    label { display:block; font-size:12px; color:#94a3b8; margin:10px 0 4px; }
+    input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #334155;
+            background: #0f172a; color: #e2e8f0; font-size: 14px; }
+    button { cursor: pointer; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; }
+    .btn { background: #2563eb; color: #fff; padding: 10px 16px; }
+    .btn:hover { background: #1d4ed8; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .ghost { background: transparent; color: #94a3b8; border: 1px solid #334155; padding: 6px 12px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .err { color: #f87171; font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .quick { display:flex; gap:8px; margin-top:12px; }
+    .quick button { font-size:12px; background:#334155; color:#cbd5e1; padding:6px 10px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .who { font-size: 13px; color: #cbd5e1; }
+    .who b { color:#60a5fa; }
+    ul { list-style: none; padding: 0; margin: 18px 0 0; }
+    li { display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid #334155;
+         border-radius:10px; margin-bottom:8px; background:#0f172a; }
+    li.done span.title { text-decoration: line-through; color:#64748b; }
+    li span.title { flex:1; font-size:14px; }
+    li .id { font-size:11px; color:#475569; font-family: monospace; }
+    .chk { width:18px; height:18px; cursor:pointer; }
+    .del { background:transparent; color:#64748b; font-size:18px; padding:0 6px; }
+    .del:hover { color:#f87171; }
+    .empty { color:#64748b; font-size:13px; text-align:center; padding:24px; }
+    .addrow { display:flex; gap:8px; margin-top:6px; }
+    .addrow input { flex:1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>GoBase Todo</h1>
+    <div class="sub">Sample app · Auth + REST + Row-Level Security · served via dashboard proxy → gateway :8000</div>
+
+    <!-- LOGIN -->
+    <div id="login" class="card">
+      <div style="font-weight:600;margin-bottom:6px;">Sign in</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;">
+        Each user sees only their own todos (RLS). Try the two demo accounts:
+      </div>
+      <label>Email</label>
+      <input id="email" value="alice@todo.app" />
+      <label>Password</label>
+      <input id="password" type="password" value="Alice@12345" />
+      <div class="quick">
+        <button onclick="fill('alice@todo.app','Alice@12345')">Use Alice</button>
+        <button onclick="fill('bob@todo.app','Bob@12345')">Use Bob</button>
+      </div>
+      <div style="margin-top:14px;" class="row">
+        <button class="btn" onclick="signin()">Sign in</button>
+        <button class="ghost" onclick="signup()">Sign up</button>
+      </div>
+      <div class="err" id="loginErr"></div>
+    </div>
+
+    <!-- APP -->
+    <div id="app" class="card" style="display:none;">
+      <div class="topbar">
+        <div class="who">Signed in as <b id="whoEmail"></b> <span style="color:#475569">(id <span id="whoId"></span>)</span></div>
+        <button class="ghost" onclick="logout()">Sign out</button>
+      </div>
+      <div class="addrow">
+        <input id="newTitle" placeholder="What needs doing?" onkeydown="if(event.key==='Enter')addTodo()" />
+        <button class="btn" onclick="addTodo()">Add</button>
+      </div>
+      <div class="err" id="appErr"></div>
+      <ul id="list"></ul>
+      <div class="empty" id="empty" style="display:none;">No todos yet — add one above.</div>
+    </div>
+  </div>
+
+<script>
+let token = null, user = null;
+
+function fill(e, p) { document.getElementById('email').value = e; document.getElementById('password').value = p; }
+function setErr(id, msg) { document.getElementById(id).textContent = msg || ''; }
+
+async function auth(path) {
+  setErr('loginErr', '');
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const res = await fetch(`/auth/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!data.success) { setErr('loginErr', data.error?.message || data.error || 'Failed'); return; }
+  token = data.data.tokens.access_token;
+  user = data.data.user;
+  showApp();
+}
+const signin = () => auth('login');
+const signup = () => auth('signup');
+
+function showApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('whoEmail').textContent = user.email;
+  document.getElementById('whoId').textContent = user.id;
+  loadTodos();
+}
+
+function logout() {
+  token = null; user = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'block';
+}
+
+function h() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+
+async function loadTodos() {
+  setErr('appErr', '');
+  const res = await fetch('/rest/v1/todos?order=id.asc', { headers: h() });
+  const data = await res.json();
+  if (!data.success) { setErr('appErr', 'Could not load todos'); return; }
+  render(data.data || []);
+}
+
+function render(todos) {
+  const list = document.getElementById('list');
+  document.getElementById('empty').style.display = todos.length ? 'none' : 'block';
+  list.innerHTML = '';
+  for (const t of todos) {
+    const li = document.createElement('li');
+    if (t.done) li.className = 'done';
+    li.innerHTML = `
+      <input class="chk" type="checkbox" ${t.done ? 'checked' : ''} />
+      <span class="title">${escapeHtml(t.title)}</span>
+      <span class="id">#${t.id}</span>
+      <button class="del" title="delete">×</button>`;
+    li.querySelector('.chk').onchange = (e) => toggle(t.id, e.target.checked);
+    li.querySelector('.del').onclick = () => del(t.id);
+    list.appendChild(li);
+  }
+}
+
+async function addTodo() {
+  const input = document.getElementById('newTitle');
+  const title = input.value.trim();
+  if (!title) return;
+  const res = await fetch('/rest/v1/todos', {
+    method: 'POST', headers: h(),
+    body: JSON.stringify({ user_id: user.id, user_email: user.email, title, done: false }),
+  });
+  if (!res.ok) { setErr('appErr', 'Add failed'); return; }
+  input.value = '';
+  loadTodos();
+}
+
+async function toggle(id, done) {
+  await fetch(`/rest/v1/todos/${id}`, { method: 'PATCH', headers: h(), body: JSON.stringify({ done }) });
+  loadTodos();
+}
+
+async function del(id) {
+  await fetch(`/rest/v1/todos/${id}`, { method: 'DELETE', headers: h() });
+  loadTodos();
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

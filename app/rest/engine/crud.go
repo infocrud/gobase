@@ -1,12 +1,14 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
+	"github.com/sureshkumarselvaraj/gobase/internal/db"
 	"github.com/sureshkumarselvaraj/gobase/pkg/response"
 	"gorm.io/gorm"
 )
@@ -51,7 +53,7 @@ func (h *CRUDHandler) List(c *fiber.Ctx) error {
 	if len(selectCols) > 0 && selectCols[0] != "*" {
 		quoted := make([]string, len(selectCols))
 		for i, col := range selectCols {
-			quoted[i] = "`" + col + "`"
+			quoted[i] = `"` + col + `"`
 		}
 		selectStr = strings.Join(quoted, ", ")
 	}
@@ -123,7 +125,7 @@ func (h *CRUDHandler) GetByID(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Table has no primary key")
 	}
 
-	query := h.db.Table(table).Where(fmt.Sprintf("`%s` = ?", pk), id)
+	query := h.db.Table(table).Where(fmt.Sprintf(`"%s" = ?`, pk), id)
 
 	// Apply RLS policy
 	policyWhere, _ := c.Locals("policy_where").(string)
@@ -132,10 +134,14 @@ func (h *CRUDHandler) GetByID(c *fiber.Ctx) error {
 	}
 
 	var result map[string]interface{}
-	if err := query.First(&result).Error; err != nil {
+	// Use Take, not First: First auto-appends "ORDER BY <pk>", but with a raw
+	// Table() query GORM doesn't know the primary key and emits a broken
+	// "ORDER BY \"table\". LIMIT 1". Take fetches one row without ordering.
+	if err := query.Take(&result).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return response.Error(c, fiber.StatusNotFound, "Record not found")
 		}
+		log.Error().Err(err).Str("table", table).Msg("GetByID query failed")
 		return response.Error(c, fiber.StatusInternalServerError, "Query failed")
 	}
 
@@ -177,13 +183,45 @@ func (h *CRUDHandler) Create(c *fiber.Ctx) error {
 		}
 	}
 
-	// Insert rows
+	// Insert rows.
 	if err := h.db.Table(table).Create(&rows).Error; err != nil {
 		log.Error().Err(err).Str("table", table).Msg("Insert failed")
 		return response.Error(c, fiber.StatusInternalServerError, "Insert failed: "+err.Error())
 	}
 
+	// Record changes for realtime subscribers (best-effort, non-fatal).
+	pk := tableSchema.PrimaryKey
+	for _, row := range rows {
+		recordID := ""
+		if pk != "" {
+			if v, ok := row[pk]; ok {
+				recordID = fmt.Sprint(v)
+			}
+		}
+		h.recordChange(table, "INSERT", recordID, row)
+	}
+
 	return response.SuccessWithStatus(c, fiber.StatusCreated, rows)
+}
+
+// recordChange appends a row to realtime_changes so the realtime service can
+// broadcast it to subscribed WebSocket clients. Failures are logged, not fatal —
+// a realtime hiccup must never break the underlying CRUD write.
+func (h *CRUDHandler) recordChange(table, operation, recordID string, payload interface{}) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		log.Warn().Err(err).Str("table", table).Msg("realtime: failed to marshal change payload")
+		return
+	}
+	change := db.RealtimeChange{
+		Table:     table,
+		Operation: operation,
+		RecordID:  recordID,
+		Payload:   string(data),
+	}
+	if err := h.db.Create(&change).Error; err != nil {
+		log.Warn().Err(err).Str("table", table).Msg("realtime: failed to record change")
+	}
 }
 
 // Update handles PATCH /rest/v1/:table/:id — update a single row.
@@ -216,7 +254,7 @@ func (h *CRUDHandler) Update(c *fiber.Ctx) error {
 	// Remove primary key from updates if present
 	delete(updates, pk)
 
-	query := h.db.Table(table).Where(fmt.Sprintf("`%s` = ?", pk), id)
+	query := h.db.Table(table).Where(fmt.Sprintf(`"%s" = ?`, pk), id)
 
 	// Apply RLS policy
 	policyWhere, _ := c.Locals("policy_where").(string)
@@ -233,6 +271,13 @@ func (h *CRUDHandler) Update(c *fiber.Ctx) error {
 	if result.RowsAffected == 0 {
 		return response.Error(c, fiber.StatusNotFound, "Record not found or access denied")
 	}
+
+	// Record change for realtime subscribers (best-effort).
+	changed := map[string]interface{}{pk: id}
+	for k, v := range updates {
+		changed[k] = v
+	}
+	h.recordChange(table, "UPDATE", id, changed)
 
 	return response.Success(c, fiber.Map{
 		"message":       "Updated successfully",
@@ -255,7 +300,7 @@ func (h *CRUDHandler) Delete(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Table has no primary key")
 	}
 
-	query := h.db.Table(table).Where(fmt.Sprintf("`%s` = ?", pk), id)
+	query := h.db.Table(table).Where(fmt.Sprintf(`"%s" = ?`, pk), id)
 
 	// Apply RLS policy
 	policyWhere, _ := c.Locals("policy_where").(string)
@@ -272,6 +317,9 @@ func (h *CRUDHandler) Delete(c *fiber.Ctx) error {
 	if result.RowsAffected == 0 {
 		return response.Error(c, fiber.StatusNotFound, "Record not found or access denied")
 	}
+
+	// Record change for realtime subscribers (best-effort).
+	h.recordChange(table, "DELETE", id, map[string]interface{}{pk: id})
 
 	return response.Success(c, fiber.Map{
 		"message":       "Deleted successfully",

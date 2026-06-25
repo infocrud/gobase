@@ -93,6 +93,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&RealtimeChange{},
 		&Organization{},
 		&Project{},
+		&APIKey{},
+		&AuditLog{},
 	)
 	if err != nil {
 		return fmt.Errorf("auto-migration failed: %w", err)

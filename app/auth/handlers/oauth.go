@@ -3,6 +3,8 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
+	"net/url"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sureshkumarselvaraj/gobase/app/auth/services"
@@ -11,16 +13,31 @@ import (
 
 // OAuthHandler handles OAuth2 endpoints.
 type OAuthHandler struct {
-	authService  *services.AuthService
-	oauthService *services.OAuthService
+	authService   *services.AuthService
+	oauthService  *services.OAuthService
+	dashboardURL  string // where to send the browser back to after auth
+	googleEnabled bool
+	githubEnabled bool
 }
 
 // NewOAuthHandler creates a new OAuthHandler.
-func NewOAuthHandler(authService *services.AuthService, oauthService *services.OAuthService) *OAuthHandler {
+func NewOAuthHandler(authService *services.AuthService, oauthService *services.OAuthService, dashboardURL string, googleEnabled, githubEnabled bool) *OAuthHandler {
 	return &OAuthHandler{
-		authService:  authService,
-		oauthService: oauthService,
+		authService:   authService,
+		oauthService:  oauthService,
+		dashboardURL:  dashboardURL,
+		googleEnabled: googleEnabled,
+		githubEnabled: githubEnabled,
 	}
+}
+
+// Providers handles GET /auth/oauth/providers — reports which OAuth providers are
+// configured, so the frontend only renders buttons for usable providers.
+func (h *OAuthHandler) Providers(c *fiber.Ctx) error {
+	return response.Success(c, fiber.Map{
+		"google": h.googleEnabled,
+		"github": h.githubEnabled,
+	})
 }
 
 // Redirect handles GET /auth/oauth/:provider — redirects to OAuth provider.
@@ -54,15 +71,24 @@ func (h *OAuthHandler) Redirect(c *fiber.Ctx) error {
 	return c.Redirect(url, fiber.StatusTemporaryRedirect)
 }
 
-// Callback handles GET /auth/oauth/:provider/callback — processes OAuth callback.
+// Callback handles GET /auth/oauth/:provider/callback — processes the OAuth
+// callback and redirects the browser back to the dashboard with the issued
+// tokens in the URL fragment (fragments are never sent to servers, so the
+// tokens stay out of access logs).
 func (h *OAuthHandler) Callback(c *fiber.Ctx) error {
 	provider := c.Params("provider")
 
-	// Validate state
+	// On any failure, bounce back to the dashboard with an error so the SPA can
+	// show it, rather than dumping raw JSON in the browser.
+	fail := func(msg string) error {
+		return c.Redirect(h.dashboardURL+"/oauth/callback#error="+url.QueryEscape(msg), fiber.StatusTemporaryRedirect)
+	}
+
+	// Validate state (CSRF protection)
 	state := c.Query("state")
 	storedState := c.Cookies("oauth_state")
 	if state == "" || state != storedState {
-		return response.Error(c, fiber.StatusBadRequest, "Invalid OAuth state — possible CSRF attack")
+		return fail("Invalid OAuth state — possible CSRF attack")
 	}
 
 	// Clear state cookie
@@ -76,24 +102,26 @@ func (h *OAuthHandler) Callback(c *fiber.Ctx) error {
 	// Exchange code for user info
 	code := c.Query("code")
 	if code == "" {
-		return response.Error(c, fiber.StatusBadRequest, "Missing authorization code")
+		return fail("Missing authorization code")
 	}
 
 	userInfo, err := h.oauthService.ExchangeCode(c.Context(), provider, code)
 	if err != nil {
-		return response.Error(c, fiber.StatusInternalServerError, "Failed to authenticate with "+provider)
+		return fail("Failed to authenticate with " + provider)
 	}
 
 	// Find or create user
-	user, tokens, err := h.authService.FindOrCreateOAuthUser(userInfo.Email, provider, userInfo.ProviderID)
+	_, tokens, err := h.authService.FindOrCreateOAuthUser(userInfo.Email, provider, userInfo.ProviderID)
 	if err != nil {
-		return response.Error(c, fiber.StatusInternalServerError, "Failed to process OAuth user")
+		return fail("Failed to process OAuth user")
 	}
 
-	return response.Success(c, fiber.Map{
-		"user":   sanitizeUser(user),
-		"tokens": tokens,
-	})
+	redirect := fmt.Sprintf("%s/oauth/callback#access_token=%s&refresh_token=%s",
+		h.dashboardURL,
+		url.QueryEscape(tokens.AccessToken),
+		url.QueryEscape(tokens.RefreshToken),
+	)
+	return c.Redirect(redirect, fiber.StatusTemporaryRedirect)
 }
 
 // generateState creates a random hex string for OAuth CSRF protection.

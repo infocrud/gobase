@@ -78,26 +78,20 @@ func (r *Runner) Invoke(name string, payload string, timeout time.Duration) (str
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Check if Deno is available
-	denoPath, err := exec.LookPath("deno")
-	if err != nil {
-		// Fallback: try Node.js for .js files
-		nodePath, nodeErr := exec.LookPath("node")
-		if nodeErr != nil {
-			return "", "", fmt.Errorf("neither Deno nor Node.js found in PATH — install one to run functions")
-		}
-		return r.execWithRuntime(ctx, nodePath, path, payload)
+	// Prefer Deno (sandboxed permission flags); fall back to Node.js.
+	// Each runtime needs different argv: `deno run <flags> <file>` vs `node <file>`.
+	if denoPath, err := exec.LookPath("deno"); err == nil {
+		return r.execWithRuntime(ctx, denoPath,
+			[]string{"run", "--allow-net", "--allow-env", "--allow-read", path}, payload)
 	}
-
-	return r.execWithRuntime(ctx, denoPath, path, payload, "--allow-net", "--allow-env", "--allow-read")
+	if nodePath, err := exec.LookPath("node"); err == nil {
+		return r.execWithRuntime(ctx, nodePath, []string{path}, payload)
+	}
+	return "", "", fmt.Errorf("neither Deno nor Node.js found in PATH — install one to run functions")
 }
 
-// execWithRuntime runs a script with the given runtime binary.
-func (r *Runner) execWithRuntime(ctx context.Context, runtime, scriptPath, payload string, extraArgs ...string) (string, string, error) {
-	args := []string{"run"}
-	args = append(args, extraArgs...)
-	args = append(args, scriptPath)
-
+// execWithRuntime runs a script with the given runtime binary and argv.
+func (r *Runner) execWithRuntime(ctx context.Context, runtime string, args []string, payload string) (string, string, error) {
 	cmd := exec.CommandContext(ctx, runtime, args...)
 
 	// Pass payload via stdin

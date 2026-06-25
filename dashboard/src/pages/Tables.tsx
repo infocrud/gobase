@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
-import { authHeaders } from '../store/auth';
+import { apiFetch } from '../store/auth';
 
 interface Column {
   name: string;
@@ -62,17 +62,17 @@ function RowModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-[hsl(222.2,84%,6%)] border border-[hsl(217.2,32.6%,17.5%)] rounded-xl w-full max-w-lg p-6 shadow-2xl"
+        className="bg-[#ffffff] border border-[#e2e8f0] rounded-xl w-full max-w-lg p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <h3 className="text-white font-semibold text-lg mb-4">{isEdit ? 'Edit Row' : 'Insert Row'} — {schema.name}</h3>
+        <h3 className="text-slate-900 font-semibold text-lg mb-4">{isEdit ? 'Edit Row' : 'Insert Row'} — {schema.name}</h3>
         <form onSubmit={handleSubmit} className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           {editableCols.map(col => (
             <div key={col.name}>
-              <label className="block text-xs text-[hsl(215,20.2%,65.1%)] mb-1 font-medium">
+              <label className="block text-xs text-[#64748b] mb-1 font-medium">
                 {col.name}
-                <span className="text-[hsl(215,20.2%,45%)] ml-2 font-normal">{col.data_type}</span>
-                {col.is_primary && <span className="ml-1 text-yellow-400 text-[10px]">PK</span>}
+                <span className="text-[#94a3b8] ml-2 font-normal">{col.data_type}</span>
+                {col.is_primary && <span className="ml-1 text-yellow-600 text-[10px]">PK</span>}
               </label>
               <input
                 type="text"
@@ -80,17 +80,17 @@ function RowModal({
                 onChange={e => setForm(f => ({ ...f, [col.name]: e.target.value }))}
                 placeholder={col.is_nullable ? 'null' : ''}
                 disabled={col.is_primary && !isEdit}
-                className="w-full px-3 py-2 bg-[hsl(217.2,32.6%,12%)] border border-[hsl(217.2,32.6%,22%)] rounded-lg text-white text-sm font-mono placeholder:text-[hsl(215,20.2%,35%)] focus:outline-none focus:border-blue-500 disabled:opacity-40"
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:border-blue-500 disabled:opacity-40"
               />
             </div>
           ))}
         </form>
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         <div className="flex gap-2 mt-5">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 rounded-lg bg-[hsl(217.2,32.6%,17.5%)] text-[hsl(215,20.2%,65.1%)] hover:text-white text-sm transition-all cursor-pointer"
+            className="flex-1 px-4 py-2 rounded-lg bg-[#e2e8f0] text-[#64748b] hover:text-slate-900 text-sm transition-all cursor-pointer"
           >
             Cancel
           </button>
@@ -113,13 +113,13 @@ function DeleteConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfir
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
       <div
-        className="bg-[hsl(222.2,84%,6%)] border border-red-500/30 rounded-xl p-6 w-80 shadow-2xl"
+        className="bg-[#ffffff] border border-red-500/30 rounded-xl p-6 w-80 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <h3 className="text-white font-semibold mb-2">Delete row?</h3>
-        <p className="text-sm text-[hsl(215,20.2%,65.1%)] mb-5">This action is irreversible.</p>
+        <h3 className="text-slate-900 font-semibold mb-2">Delete row?</h3>
+        <p className="text-sm text-[#64748b] mb-5">This action is irreversible.</p>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 px-3 py-2 rounded-lg bg-[hsl(217.2,32.6%,17.5%)] text-[hsl(215,20.2%,65.1%)] hover:text-white text-sm transition-all cursor-pointer">
+          <button onClick={onCancel} className="flex-1 px-3 py-2 rounded-lg bg-[#e2e8f0] text-[#64748b] hover:text-slate-900 text-sm transition-all cursor-pointer">
             Cancel
           </button>
           <button onClick={onConfirm} className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-all cursor-pointer">
@@ -156,16 +156,15 @@ export default function TablesPage() {
   };
 
   const fetchSchema = async () => {
-    const res = await fetch('/rest/v1/_schema', { headers: authHeaders() });
+    const res = await apiFetch('/rest/v1/_schema');
     const data = await res.json();
     if (data.success) setTables(data.data || []);
   };
 
   const fetchRows = async (p = page) => {
     setLoading(true);
-    const res = await fetch(
-      `/rest/v1/${selectedTable}?limit=${PAGE_SIZE}&offset=${p * PAGE_SIZE}`,
-      { headers: authHeaders() }
+    const res = await apiFetch(
+      `/rest/v1/${selectedTable}?limit=${PAGE_SIZE}&offset=${p * PAGE_SIZE}`
     );
     const data = await res.json();
     if (data.success) {
@@ -179,9 +178,8 @@ export default function TablesPage() {
   const pkCol = selectedSchema?.primary_key || selectedSchema?.columns.find(c => c.is_primary)?.name || 'id';
 
   const handleInsert = async (payload: RowData) => {
-    const res = await fetch(`/rest/v1/${selectedTable}`, {
+    const res = await apiFetch(`/rest/v1/${selectedTable}`, {
       method: 'POST',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -195,9 +193,8 @@ export default function TablesPage() {
   const handleEdit = async (payload: RowData) => {
     if (!editRow) return;
     const id = editRow[pkCol];
-    const res = await fetch(`/rest/v1/${selectedTable}/${id}`, {
+    const res = await apiFetch(`/rest/v1/${selectedTable}/${id}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -211,9 +208,8 @@ export default function TablesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const id = deleteTarget[pkCol];
-    await fetch(`/rest/v1/${selectedTable}/${id}`, {
+    await apiFetch(`/rest/v1/${selectedTable}/${id}`, {
       method: 'DELETE',
-      headers: authHeaders(),
     });
     setDeleteTarget(null);
     showToast('Row deleted');
@@ -245,8 +241,8 @@ export default function TablesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">Table Editor</h2>
-          <p className="text-sm text-[hsl(215,20.2%,65.1%)] mt-1">View and edit table data.</p>
+          <h2 className="text-2xl font-bold text-slate-900">Table Editor</h2>
+          <p className="text-sm text-[#64748b] mt-1">View and edit table data.</p>
         </div>
         <div className="flex gap-2">
           {selectedTable && (
@@ -259,7 +255,7 @@ export default function TablesPage() {
           )}
           <button
             onClick={fetchSchema}
-            className="px-4 py-2 rounded-lg bg-[hsl(217.2,32.6%,17.5%)] text-sm text-[hsl(215,20.2%,65.1%)] hover:text-white transition-all cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-[#e2e8f0] text-sm text-[#64748b] hover:text-slate-900 transition-all cursor-pointer"
           >
             ↻ Refresh
           </button>
@@ -275,7 +271,7 @@ export default function TablesPage() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               selectedTable === t.name
                 ? 'bg-blue-600 text-white'
-                : 'bg-[hsl(217.2,32.6%,17.5%)] text-[hsl(215,20.2%,65.1%)] hover:text-white'
+                : 'bg-[#e2e8f0] text-[#64748b] hover:text-slate-900'
             }`}
           >
             {t.name}
@@ -283,30 +279,30 @@ export default function TablesPage() {
         ))}
         {tables.length === 0 && (
           <div className="w-full p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-            <p className="text-[hsl(215,20.2%,65.1%)] text-sm">No tables found</p>
-            <p className="text-xs text-[hsl(215,20.2%,45%)] mt-1">Create tables via the SQL runner, then refresh.</p>
+            <p className="text-[#64748b] text-sm">No tables found</p>
+            <p className="text-xs text-[#94a3b8] mt-1">Create tables via the SQL runner, then refresh.</p>
           </div>
         )}
       </div>
 
       {/* Data Table */}
       {selectedTable && selectedSchema && (
-        <div className="rounded-xl border border-[hsl(217.2,32.6%,17.5%)] overflow-hidden">
+        <div className="rounded-xl border border-[#e2e8f0] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[hsl(217.2,32.6%,12%)]">
+                <tr className="bg-[#f1f5f9]">
                   {selectedSchema.columns.map(col => (
-                    <th key={col.name} className="px-4 py-3 text-left text-xs font-semibold text-[hsl(215,20.2%,65.1%)] uppercase tracking-wider whitespace-nowrap">
+                    <th key={col.name} className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider whitespace-nowrap">
                       <div className="flex items-center gap-1">
                         {col.name}
                         {col.is_primary && <span className="text-yellow-400 text-[10px]">PK</span>}
                       </div>
-                      <span className="text-[10px] text-[hsl(215,20.2%,45%)] font-normal normal-case">{col.data_type}</span>
+                      <span className="text-[10px] text-[#94a3b8] font-normal normal-case">{col.data_type}</span>
                     </th>
                   ))}
                   {/* Actions column */}
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[hsl(215,20.2%,65.1%)] uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[#64748b] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -314,36 +310,36 @@ export default function TablesPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={selectedSchema.columns.length + 1} className="px-4 py-8 text-center text-[hsl(215,20.2%,65.1%)]">
+                    <td colSpan={selectedSchema.columns.length + 1} className="px-4 py-8 text-center text-[#64748b]">
                       Loading...
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={selectedSchema.columns.length + 1} className="px-4 py-8 text-center text-[hsl(215,20.2%,65.1%)]">
-                      No rows — click <span className="text-blue-400">+ Insert Row</span> to add one.
+                    <td colSpan={selectedSchema.columns.length + 1} className="px-4 py-8 text-center text-[#64748b]">
+                      No rows — click <span className="text-blue-600">+ Insert Row</span> to add one.
                     </td>
                   </tr>
                 ) : (
                   rows.map((row, i) => (
-                    <tr key={i} className="border-t border-[hsl(217.2,32.6%,17.5%)] hover:bg-[hsl(217.2,32.6%,10%)] transition-colors group">
+                    <tr key={i} className="border-t border-[#e2e8f0] hover:bg-[#f1f5f9] transition-colors group">
                       {selectedSchema.columns.map(col => (
-                        <td key={col.name} className="px-4 py-3 text-[hsl(210,40%,90%)] font-mono text-xs max-w-48 truncate">
+                        <td key={col.name} className="px-4 py-3 text-[#1e293b] font-mono text-xs max-w-48 truncate">
                           {row[col.name] === null || row[col.name] === undefined
-                            ? <span className="text-[hsl(215,20.2%,45%)] italic">null</span>
+                            ? <span className="text-[#94a3b8] italic">null</span>
                             : String(row[col.name])}
                         </td>
                       ))}
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <button
                           onClick={() => { setEditRow(row); setModal('edit'); }}
-                          className="text-xs text-[hsl(215,20.2%,55%)] hover:text-blue-400 transition-colors cursor-pointer mr-3 opacity-0 group-hover:opacity-100"
+                          className="text-xs text-[#94a3b8] hover:text-blue-600 transition-colors cursor-pointer mr-3 opacity-0 group-hover:opacity-100"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => setDeleteTarget(row)}
-                          className="text-xs text-[hsl(215,20.2%,55%)] hover:text-red-400 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                          className="text-xs text-[#94a3b8] hover:text-red-600 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                         >
                           Delete
                         </button>
@@ -356,14 +352,14 @@ export default function TablesPage() {
           </div>
 
           {/* Footer: count + pagination */}
-          <div className="px-4 py-3 bg-[hsl(217.2,32.6%,10%)] border-t border-[hsl(217.2,32.6%,17.5%)] flex items-center justify-between text-xs text-[hsl(215,20.2%,65.1%)]">
+          <div className="px-4 py-3 bg-[#f1f5f9] border-t border-[#e2e8f0] flex items-center justify-between text-xs text-[#64748b]">
             <span>{rows.length} rows{total > rows.length ? ` of ${total}` : ''} • {selectedSchema.columns.length} columns</span>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <button
                   disabled={page === 0}
                   onClick={() => { const p = page - 1; setPage(p); fetchRows(p); }}
-                  className="px-2 py-1 rounded bg-[hsl(217.2,32.6%,17.5%)] hover:text-white disabled:opacity-40 cursor-pointer"
+                  className="px-2 py-1 rounded bg-[#e2e8f0] hover:text-slate-900 disabled:opacity-40 cursor-pointer"
                 >
                   ← Prev
                 </button>
@@ -371,7 +367,7 @@ export default function TablesPage() {
                 <button
                   disabled={page >= totalPages - 1}
                   onClick={() => { const p = page + 1; setPage(p); fetchRows(p); }}
-                  className="px-2 py-1 rounded bg-[hsl(217.2,32.6%,17.5%)] hover:text-white disabled:opacity-40 cursor-pointer"
+                  className="px-2 py-1 rounded bg-[#e2e8f0] hover:text-slate-900 disabled:opacity-40 cursor-pointer"
                 >
                   Next →
                 </button>

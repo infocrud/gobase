@@ -29,7 +29,9 @@ func Register(app *fiber.App, h Handlers, jwtSecret string) {
 	auth.Post("/forgot-password", h.Reset.ForgotPassword)
 	auth.Post("/reset-password", h.Reset.ResetPassword)
 
-	// OAuth routes
+	// OAuth routes — register the static /providers path before the :provider
+	// wildcard so it isn't captured as a provider name.
+	auth.Get("/oauth/providers", h.OAuth.Providers)
 	auth.Get("/oauth/:provider", h.OAuth.Redirect)
 	auth.Get("/oauth/:provider/callback", h.OAuth.Callback)
 

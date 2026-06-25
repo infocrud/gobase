@@ -18,10 +18,13 @@ func Register(app *fiber.App, h Handlers, jwtSecret string) {
 	storage := app.Group("/storage/v1", middleware.JWTProtect(jwtSecret))
 
 	// Object operations
+	// NOTE: the exact "/object/:bucket" (list) route must be registered before the
+	// "/object/:bucket/*" wildcard routes, otherwise a no-path GET matches the
+	// wildcard Download handler with an empty path and 400s.
+	storage.Get("/object/:bucket", h.Object.List)
 	storage.Post("/object/:bucket/*", h.Object.Upload)
 	storage.Get("/object/:bucket/*", h.Object.Download)
 	storage.Delete("/object/:bucket/*", h.Object.Delete)
-	storage.Get("/object/:bucket", h.Object.List)
 
 	// Signed URL generation
 	storage.Post("/sign/:bucket/*", h.Sign.SignDownload)

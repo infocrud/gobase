@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth';
 import Layout from './components/Layout';
 import LoginPage from './pages/Login';
@@ -16,11 +17,38 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Handles the OAuth redirect: reads tokens (or error) from the URL fragment,
+// applies the session, and routes the user into the app or back to login.
+function OAuthCallback() {
+  const navigate = useNavigate();
+  const applyTokens = useAuthStore((s) => s.applyTokens);
+  const setError = useAuthStore((s) => s.setError);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const access = params.get('access_token');
+    const refresh = params.get('refresh_token');
+    const err = params.get('error');
+    if (access) {
+      applyTokens(access, refresh ?? undefined);
+      navigate('/', { replace: true });
+    } else {
+      setError(err || 'OAuth sign-in failed');
+      navigate('/login', { replace: true });
+    }
+  }, [navigate, applyTokens, setError]);
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 text-sm">
+      Signing you in…
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
         
         {/* Platform Root - Organization & Project Selection */}
         <Route path="/" element={<ProtectedRoute><PlatformPage /></ProtectedRoute>} />

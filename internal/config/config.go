@@ -114,11 +114,13 @@ type ServicesConfig struct {
 	StoragePort   string
 	FunctionsPort string
 	// Service URLs for gateway proxying (allows Docker/K8s service discovery)
-	AuthURL      string
-	RestURL      string
-	RealtimeURL  string
-	StorageURL   string
-	FunctionsURL string
+	AuthURL         string
+	RestURL         string
+	RealtimeURL     string
+	StorageURL      string
+	FunctionsURL    string
+	ControlPlaneURL string
+	DashboardURL    string // where the OAuth callback redirects the browser back to
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -159,12 +161,15 @@ func Load() (*Config, error) {
 	viper.SetDefault("REALTIME_PORT", "8003")
 	viper.SetDefault("STORAGE_PORT", "8004")
 	viper.SetDefault("FUNCTIONS_PORT", "8005")
+	viper.SetDefault("CONTROLPLANE_PORT", "8008")
 	// Gateway proxy target URLs — override for Docker/K8s
 	viper.SetDefault("AUTH_URL", "")
 	viper.SetDefault("REST_URL", "")
 	viper.SetDefault("REALTIME_URL", "")
 	viper.SetDefault("STORAGE_URL", "")
 	viper.SetDefault("FUNCTIONS_URL", "")
+	viper.SetDefault("CONTROLPLANE_URL", "")
+	viper.SetDefault("DASHBOARD_URL", "http://localhost:3000")
 	viper.SetDefault("RATE_LIMIT_MAX", 100)
 	viper.SetDefault("RATE_LIMIT_WINDOW", "1m")
 	viper.SetDefault("REALTIME_POLL_INTERVAL", "1s")
@@ -245,6 +250,8 @@ func Load() (*Config, error) {
 			RealtimeURL:   serviceURL(viper.GetString("REALTIME_URL"), viper.GetString("REALTIME_PORT")),
 			StorageURL:    serviceURL(viper.GetString("STORAGE_URL"), viper.GetString("STORAGE_PORT")),
 			FunctionsURL:  serviceURL(viper.GetString("FUNCTIONS_URL"), viper.GetString("FUNCTIONS_PORT")),
+			ControlPlaneURL: serviceURL(viper.GetString("CONTROLPLANE_URL"), viper.GetString("CONTROLPLANE_PORT")),
+			DashboardURL:    viper.GetString("DASHBOARD_URL"),
 		},
 		RateLimit: RateLimitConfig{
 			Max:    viper.GetInt("RATE_LIMIT_MAX"),

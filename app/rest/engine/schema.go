@@ -52,27 +52,44 @@ func NewSchemaCache(database *gorm.DB, dbName string) *SchemaCache {
 	return sc
 }
 
-// Refresh re-introspects all tables from INFORMATION_SCHEMA.
+// Refresh re-introspects all tables from information_schema.
 func (sc *SchemaCache) Refresh() error {
-	log.Info().Msg("Refreshing schema cache from INFORMATION_SCHEMA...")
+	log.Info().Msg("Refreshing schema cache from information_schema...")
 
-	// Query all columns for all tables in the database
+	// Query all columns for all tables in the public schema.
+	// PostgreSQL's information_schema has no MySQL-style COLUMN_KEY, so primary
+	// keys are derived by joining table_constraints/key_column_usage.
 	type columnRow struct {
-		TableName  string  `gorm:"column:TABLE_NAME"`
-		ColumnName string  `gorm:"column:COLUMN_NAME"`
-		DataType   string  `gorm:"column:DATA_TYPE"`
-		IsNullable string  `gorm:"column:IS_NULLABLE"`
-		ColumnKey  string  `gorm:"column:COLUMN_KEY"`
-		Default    *string `gorm:"column:COLUMN_DEFAULT"`
+		TableName  string  `gorm:"column:table_name"`
+		ColumnName string  `gorm:"column:column_name"`
+		DataType   string  `gorm:"column:data_type"`
+		IsNullable string  `gorm:"column:is_nullable"`
+		ColumnKey  string  `gorm:"column:column_key"`
+		Default    *string `gorm:"column:column_default"`
 	}
 
 	var rows []columnRow
 	result := sc.database.Raw(`
-		SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT
-		FROM INFORMATION_SCHEMA.COLUMNS
-		WHERE TABLE_SCHEMA = ?
-		ORDER BY TABLE_NAME, ORDINAL_POSITION
-	`, sc.dbName).Scan(&rows)
+		SELECT
+			c.table_name    AS table_name,
+			c.column_name   AS column_name,
+			c.data_type     AS data_type,
+			c.is_nullable   AS is_nullable,
+			c.column_default AS column_default,
+			CASE WHEN pk.column_name IS NOT NULL THEN 'PRI' ELSE '' END AS column_key
+		FROM information_schema.columns c
+		LEFT JOIN (
+			SELECT kcu.table_name, kcu.column_name
+			FROM information_schema.table_constraints tc
+			JOIN information_schema.key_column_usage kcu
+				ON tc.constraint_name = kcu.constraint_name
+				AND tc.table_schema = kcu.table_schema
+			WHERE tc.constraint_type = 'PRIMARY KEY'
+				AND tc.table_schema = 'public'
+		) pk ON pk.table_name = c.table_name AND pk.column_name = c.column_name
+		WHERE c.table_schema = 'public'
+		ORDER BY c.table_name, c.ordinal_position
+	`).Scan(&rows)
 
 	if result.Error != nil {
 		return fmt.Errorf("schema introspection failed: %w", result.Error)
