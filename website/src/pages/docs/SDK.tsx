@@ -3,7 +3,7 @@ import { Code, H2, P } from '../../components/DocElements';
 export default function SDKPage() {
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">JavaScript SDK</h1>
+      <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>JavaScript SDK</h1>
       <P>The official GoBase SDK provides a Supabase-compatible TypeScript client for Auth, Database, Storage, and Realtime.</P>
 
       <H2>Install</H2>
@@ -40,11 +40,7 @@ const { data } = await gb.from('todos')
   .get()
 
 // Insert
-await gb.from('todos').insert({
-  title: 'New task',
-  done: false,
-  user_id: 1
-})
+await gb.from('todos').insert({ title: 'New task', done: false, user_id: 1 })
 
 // Update
 await gb.from('todos').update(1, { done: true })
@@ -53,15 +49,15 @@ await gb.from('todos').update(1, { done: true })
 await gb.from('todos').delete(1)
 
 // Available filters
-.eq('col', val)      // Equal
-.neq('col', val)     // Not equal
-.gt('col', val)      // Greater than
-.gte('col', val)     // Greater than or equal
-.lt('col', val)      // Less than
-.lte('col', val)     // Less than or equal
-.like('col', '%val%')// LIKE pattern
-.in('col', [1,2,3])  // IN list
-.is('col', 'null')   // IS NULL`}</Code>
+.eq('col', val)       // Equal
+.neq('col', val)      // Not equal
+.gt('col', val)       // Greater than
+.gte('col', val)      // Greater than or equal
+.lt('col', val)       // Less than
+.lte('col', val)      // Less than or equal
+.like('col', '%val%') // LIKE pattern
+.in('col', [1,2,3])   // IN list
+.is('col', 'null')    // IS NULL`}</Code>
 
       <H2>Storage</H2>
       <Code>{`// Upload

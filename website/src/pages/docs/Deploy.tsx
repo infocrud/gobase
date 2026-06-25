@@ -1,9 +1,11 @@
 import { Code, H2, P } from '../../components/DocElements';
 
+const ic = { color: '#da5d04', fontFamily: 'JetBrains Mono, monospace', fontSize: '13px' } as const;
+
 export default function DeployPage() {
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">Deployment Guide</h1>
+      <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>Deployment Guide</h1>
       <P>Deploy GoBase on your own infrastructure using Docker, systemd, or Kubernetes.</P>
 
       <H2>Docker Compose (Recommended)</H2>
@@ -19,13 +21,19 @@ docker compose up -d
 make migrate`}</Code>
 
       <H2>Production Checklist</H2>
-      <div className="p-4 rounded-xl border border-orange-500/30 bg-orange-500/5 text-sm text-[var(--text-secondary)] mb-6 space-y-1">
-        <p>⚠️ <strong className="text-orange-400">Before going to production:</strong></p>
-        <ul className="list-disc list-inside space-y-1 ml-4">
-          <li>Change <code className="text-blue-400">JWT_SECRET</code> — run <code className="text-blue-400">openssl rand -hex 32</code></li>
+      <div style={{
+        padding: '16px 20px',
+        borderRadius: '10px',
+        border: '1px solid #fed7aa',
+        background: '#fff7ed',
+        marginBottom: '24px',
+      }}>
+        <p style={{ color: '#c2410c', fontWeight: 600, marginBottom: '10px', fontSize: '14px' }}>⚠️ Before going to production:</p>
+        <ul style={{ color: '#7c3a1e', paddingLeft: '20px', lineHeight: 2.2, fontSize: '13.5px' }}>
+          <li>Change <code style={ic}>JWT_SECRET</code> — run <code style={ic}>openssl rand -hex 32</code></li>
           <li>Change all database and MinIO passwords</li>
-          <li>Set <code className="text-blue-400">APP_ENV=production</code></li>
-          <li>Set <code className="text-blue-400">MINIO_USE_SSL=true</code></li>
+          <li>Set <code style={ic}>APP_ENV=production</code></li>
+          <li>Set <code style={ic}>MINIO_USE_SSL=true</code></li>
           <li>Enable SMTP for real email delivery</li>
           <li>Put Nginx with SSL in front of the gateway</li>
         </ul>

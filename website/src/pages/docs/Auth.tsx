@@ -1,9 +1,11 @@
 import { Code, H2, P, Table } from '../../components/DocElements';
 
+const ic = { color: '#da5d04', fontFamily: 'JetBrains Mono, monospace', fontSize: '13px' } as const;
+
 export default function AuthPage() {
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">Authentication</h1>
+      <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>Authentication</h1>
       <P>GoBase provides a complete authentication system with email/password, OAuth2, email verification, and password reset.</P>
 
       <H2>Endpoints</H2>
@@ -60,7 +62,7 @@ await gb.auth.signOut()`}</Code>
 GOOGLE_CLIENT_SECRET=your-google-secret
 GITHUB_CLIENT_ID=your-github-id
 GITHUB_CLIENT_SECRET=your-github-secret`}</Code>
-      <P>Redirect users to <code className="text-blue-400">/auth/oauth/google</code> or <code className="text-blue-400">/auth/oauth/github</code> to initiate the flow.</P>
+      <P>Redirect users to <code style={ic}>/auth/oauth/google</code> or <code style={ic}>/auth/oauth/github</code> to initiate the flow.</P>
 
       <H2>Admin Endpoints</H2>
       <Table
@@ -72,7 +74,7 @@ GITHUB_CLIENT_SECRET=your-github-secret`}</Code>
           ['DELETE', '/auth/admin/users/:id', 'Delete user and tokens'],
         ]}
       />
-      <P>Admin endpoints require a JWT with <code className="text-blue-400">role: "admin"</code>.</P>
+      <P>Admin endpoints require a JWT with <code style={ic}>role: "admin"</code>.</P>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -63,14 +65,20 @@ func processProvisioningQueue(database *gorm.DB) {
 	for _, p := range projects {
 		log.Info().Str("project_name", p.Name).Msg("Provisioning resources for project")
 
-		// 1. MVP: Run Docker command to spin up isolated MySQL instance for tenant
-		// Format: docker run -d --name gobase-tenant-<id> -e MYSQL_ROOT_PASSWORD=random_secure -p <port>:3306 mysql:8
 		containerName := fmt.Sprintf("gobase-tenant-%d", p.ID)
-		
-		cmd := exec.Command("docker", "run", "-d", "--name", containerName, 
-			"-e", "MYSQL_ROOT_PASSWORD=gobase_secure_123", // TODO: generate secure rand
-			"-e", "MYSQL_DATABASE=gobase",
-			"mysql:8")
+
+		pwBytes := make([]byte, 24)
+		if _, err := rand.Read(pwBytes); err != nil {
+			log.Error().Err(err).Str("project", p.Name).Msg("Failed to generate tenant password")
+			database.Model(&p).Update("status", "failed")
+			continue
+		}
+		tenantPassword := hex.EncodeToString(pwBytes)
+
+		cmd := exec.Command("docker", "run", "-d", "--name", containerName,
+			"-e", "POSTGRES_PASSWORD="+tenantPassword,
+			"-e", "POSTGRES_DB=gobase",
+			"postgres:15-alpine")
 			
 		err := cmd.Run()
 		if err != nil {

@@ -12,7 +12,6 @@ import Functions from './pages/docs/Functions';
 import RLS from './pages/docs/RLS';
 import SDK from './pages/docs/SDK';
 import Deploy from './pages/docs/Deploy';
-import Pricing from './pages/Pricing';
 
 export default function App() {
   return (
@@ -20,7 +19,6 @@ export default function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/pricing" element={<Pricing />} />
         <Route path="/docs" element={<DocsLayout />}>
           <Route index element={<Intro />} />
           <Route path="quickstart" element={<QuickStart />} />

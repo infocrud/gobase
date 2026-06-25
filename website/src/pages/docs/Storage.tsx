@@ -3,7 +3,7 @@ import { Code, H2, P, Table } from '../../components/DocElements';
 export default function StoragePage() {
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">Storage</h1>
+      <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>Storage</h1>
       <P>GoBase Storage provides S3-compatible file management via MinIO. Upload, download, delete files and generate presigned URLs.</P>
 
       <H2>Endpoints</H2>

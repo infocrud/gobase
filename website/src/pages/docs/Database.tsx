@@ -3,8 +3,8 @@ import { Code, H2, P, Table } from '../../components/DocElements';
 export default function DatabasePage() {
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">Database</h1>
-      <P>GoBase auto-generates a REST API from your MySQL schema. Create tables in MySQL, and GoBase instantly provides Supabase-compatible CRUD endpoints.</P>
+      <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>Database</h1>
+      <P>GoBase auto-generates a REST API from your PostgreSQL schema. Create tables in PostgreSQL, and GoBase instantly provides Supabase-compatible CRUD endpoints.</P>
 
       <H2>Endpoints</H2>
       <Table headers={['Method', 'Endpoint', 'Description']} rows={[
@@ -34,14 +34,14 @@ curl http://localhost:8000/rest/v1/todos \\
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Get active todos, ordered by creation date
-curl "http://localhost:8000/rest/v1/todos?done=eq.0&order=created_at.desc&limit=10" \\
+curl "http://localhost:8000/rest/v1/todos?done=eq.false&order=created_at.desc&limit=10" \\
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Insert a todo
 curl -X POST http://localhost:8000/rest/v1/todos \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -H "Content-Type: application/json" \\
-  -d '{"title": "Buy groceries", "done": 0}'`}</Code>
+  -d '{"title": "Buy groceries", "done": false}'`}</Code>
 
       <H2>SDK Usage</H2>
       <Code>{`// Select with filters

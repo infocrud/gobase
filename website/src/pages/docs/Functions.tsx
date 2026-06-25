@@ -1,9 +1,11 @@
 import { Code, H2, P, Table } from '../../components/DocElements';
 
+const ic = { color: '#da5d04', fontFamily: 'JetBrains Mono, monospace', fontSize: '13px' } as const;
+
 export default function FunctionsDocPage() {
   return (
     <div>
-      <h1 className="text-4xl font-bold text-white mb-2">Edge Functions</h1>
+      <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>Edge Functions</h1>
       <P>Deploy and invoke serverless JavaScript/TypeScript functions. GoBase executes them via Deno or Node.js subprocess.</P>
 
       <H2>Endpoints</H2>
@@ -26,7 +28,7 @@ console.log(JSON.stringify({ message: "Hello from GoBase!", input: payload }));'
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "World"}'`}</Code>
-      <P>The payload is available via the <code className="text-blue-400">GOBASE_PAYLOAD</code> environment variable and stdin.</P>
+      <P>The payload is available via the <code style={ic}>GOBASE_PAYLOAD</code> environment variable and stdin.</P>
 
       <H2>Timeout</H2>
       <P>Default timeout is 30 seconds. Override per invocation:</P>
@@ -35,9 +37,9 @@ console.log(JSON.stringify({ message: "Hello from GoBase!", input: payload }));'
 
       <H2>Runtime Requirements</H2>
       <P>Install either Deno or Node.js on the server:</P>
-      <ul className="list-disc list-inside text-[var(--text-secondary)] space-y-1 mb-4">
-        <li><strong>Deno</strong> — Preferred. Auto-sandboxed with <code className="text-blue-400">--allow-net --allow-env</code></li>
-        <li><strong>Node.js</strong> — Fallback. Used if Deno is not available.</li>
+      <ul style={{ color: '#475569', paddingLeft: '20px', marginBottom: '16px', lineHeight: 2.2 }}>
+        <li><strong style={{ color: '#0f172a' }}>Deno</strong> — Preferred. Auto-sandboxed with <code style={ic}>--allow-net --allow-env</code></li>
+        <li><strong style={{ color: '#0f172a' }}>Node.js</strong> — Fallback. Used if Deno is not available.</li>
       </ul>
     </div>
   );
